@@ -1,4 +1,20 @@
-﻿<div class="top-row pl-4 navbar navbar-dark">
+﻿@{
+    @using Microsoft.AspNetCore.Identity
+    @inject NavigationManager NavigationManager
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    string oUser = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+}
+<div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">eCable Services</a>
     <button class="navbar-toggler" @onclick="ToggleNavMenu">
         <span class="navbar-toggler-icon"></span>
@@ -12,16 +28,94 @@
                 <span class="oi oi-home" aria-hidden="true"></span> Home
             </NavLink>
         </li>
-        <li class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> Counter
-            </NavLink>
-        </li>
-        <li class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-            </NavLink>
-        </li>
+        
+        <AuthorizeView>
+            <Authorized>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="collectors">
+                        <span class="oi oi-briefcase" aria-hidden="true"></span> Cobradores
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="installers">
+                        <span class="oi oi-document" aria-hidden="true"></span> Técnicos
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="cashiers">
+                        <span class="oi oi-dollar" aria-hidden="true"></span> Cajeros
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="applications">
+                        <span class="oi oi-arrow-right" aria-hidden="true"></span> Aplicaciones
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="outcomes">
+                        <span class="oi oi-check" aria-hidden="true"></span> Egresos
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="sales">
+                        <span class="oi oi-star" aria-hidden="true"></span> Ventas
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="contracts">
+                        <span class="oi oi-document" aria-hidden="true"></span> Contratos
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="warehouse">
+                        <span class="oi oi-cart" aria-hidden="true"></span> Bodega
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="qualityassurance">
+                        <span class="oi oi-badge" aria-hidden="true"></span> Control de Calidad
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="reports">
+                        <span class="oi oi-print" aria-hidden="true"></span> Reportes
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="callcenter">
+                        <span class="oi oi-phone" aria-hidden="true"></span> Call Center
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="accounting">
+                        <span class="oi oi-calculator" aria-hidden="true"></span> Contabilidad
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="Identity/Account/Manage/Index">
+                        <span class="oi oi-account-login" aria-hidden="true"></span> Mi Cuenta
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="Identity/Account/LogOut">
+                        <span class="oi oi-account-logout" aria-hidden="true"></span> Cerrar Sesión
+                    </NavLink>
+                </li>
+            </Authorized>
+            <NotAuthorized>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="Identity/Account/Register">
+                        <span class="oi oi-plus" aria-hidden="true"></span> Registrarse
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="Identity/Account/Login">
+                        <span class="oi oi-account-login" aria-hidden="true"></span> Iniciar Sesión
+                    </NavLink>
+                </li>
+            </NotAuthorized>
+
+        </AuthorizeView>
     </ul>
 </div>
 

@@ -1,0 +1,525 @@
+﻿@page "/contracts"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+    <AuthorizeView>
+        <Authorized>
+            <h3>Contratos</h3>
+            <br />
+            <table style="width:100%;">
+
+                <tr>
+                    <td><p><b>Nro. Contrato Interno:</b></p></td>
+                    <td><input @bind-value="idcontract" @bind-value:event="oninput" class="form-control" readonly /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Nro. Contrato físico:</b></p></td>
+                    <td><input @bind-value="contractnum" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Nombre(s):</b></p></td>
+                    <td><input @bind-value="firstname" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Apellidos(s):</b></p></td>
+                    <td><input @bind-value="lastname" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Tipo Documento:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="documenttypeid">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext()) {  
+                                var conn = context.Database.GetDbConnection(); conn.Open(); 
+                                var command = conn.CreateCommand(); 
+                                string query = "SELECT * FROM client_type_doc WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY id_type_doc"; command.CommandText = query; var reader = command.ExecuteReader();  while (reader.Read()) {
+                            <option value="@reader.GetValue("id_type_doc").ToString()">@reader.GetValue("txt_type_doc").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Nro. Documento:</b></p></td>
+                    <td><input @bind-value="documentid" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Teléfono:</b></p></td>
+                    <td><input @bind-value="phonenumber" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Email:</b></p></td>
+                    <td><input @bind-value="email" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Dirección:</b></p></td>
+                    <td><input @bind-value="clientaddress" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Contador:</b></p></td>
+                    <td><input @bind-value="counter" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Poste:</b></p></td>
+                    <td><input @bind-value="pole" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Colonia:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="idzipcoverage">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+
+                                var conn = context.Database.GetDbConnection();
+                                conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT * FROM zip_catalog WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY txt_zip";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_zip").ToString()">@reader.GetValue("txt_zip").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Servicio:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="idservice">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+
+                                var conn = context.Database.GetDbConnection();
+                                conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT sc.* FROM services_catalog sc INNER JOIN zip_coverage z ON z.id_branch = sc.id_branch AND z.id_service = sc.id_service AND z.id_zip = 0" + idzipcoverage + " WHERE sc.yn_active = -1 AND sc.id_branch = " + sIdBranch + " ORDER BY txt_service";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_service").ToString()">@reader.GetValue("txt_service").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Cobrador:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="idcollector">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+
+                                var conn = context.Database.GetDbConnection();
+                                conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT cc.* FROM coworkers_catalog cc INNER JOIN collectors c ON c.id_branch = cc.id_branch AND c.id_coworker = cc.id_coworker WHERE cc.yn_active = -1 AND cc.id_branch = " + sIdBranch + " ORDER BY cc.txt_lastname, cc.txt_firstname";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_coworker").ToString()">@reader.GetValue("txt_lastname").ToString() @reader.GetValue("txt_firstname").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Vendedor:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="idvendor">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+
+                                var conn = context.Database.GetDbConnection();
+                                conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT cc.* FROM coworkers_catalog cc INNER JOIN vendors c ON c.id_branch = cc.id_branch AND c.id_coworker = cc.id_coworker WHERE cc.yn_active = -1 AND cc.id_branch = " + sIdBranch + " ORDER BY cc.txt_lastname, cc.txt_firstname";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_coworker").ToString()">@reader.GetValue("txt_lastname").ToString() @reader.GetValue("txt_firstname").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>NIT:</b></p></td>
+                    <td><input @bind-value="einnumber" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Facturar a:</b></p></td>
+                    <td><input @bind-value="billingname" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Dirección Factura:</b></p></td>
+                    <td><input @bind-value="billingaddress" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Dirección Cobro:</b></p></td>
+                    <td><input @bind-value="collectaddress" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Día Cobro:</b></p></td>
+                    <td><input type="number" @bind-value="collectday" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Fecha Apertura:</b></p></td>
+                    <td><input @bind-value="creationdate" @bind-value:event="oninput" class="form-control" readonly/></td>
+                </tr>
+                <tr>
+                    <td><p><b>Estado:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="clientstatus">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+
+                                var conn = context.Database.GetDbConnection();
+                                conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT * FROM client_status WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY txt_status";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_status").ToString()">@reader.GetValue("txt_status").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Fecha Baja:</b></p></td>
+                    <td><input @bind-value="dischargedate" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>TV Principal:</b></p></td>
+                    <td><input type="number" @bind-value="principaltvs" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>TV Adicional:</b></p></td>
+                    <td><input type="number" @bind-value="additionaltvs" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Filtro:</b></p></td>
+                    <td><input type="number" @bind-value="filter" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>MAC:</b></p></td>
+                    <td><input @bind-value="macaddress" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Router:</b></p></td>
+                    <td><input @bind-value="router" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><p><b>Tipo Cartera:</b></p></td>
+                    <td>
+                        <select class="custom-select" @bind="idtypeofwallet">
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+
+                                var conn = context.Database.GetDbConnection();
+                                conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT * FROM client_type_wallet WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY txt_type_wallet";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_type_wallet").ToString()">@reader.GetValue("txt_type_wallet").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Observaciones:</b></p></td>
+                    <td><input @bind-value="clientobs" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
+                    <td><button class="btn btn-primary" @onclick=@BtnClick>Save</button></td>
+                    <td></td>
+                </tr>
+
+            </table>
+        </Authorized>
+        <NotAuthorized>
+            <h2>Please Login</h2>
+            <a href="Identity/Account/Login">Log in</a>
+        </NotAuthorized>
+    </AuthorizeView>
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+    [BindProperty]
+    public string idcontract { get; set; } = "";
+    [BindProperty]
+    public string contractnum { get; set; } = "";
+    [BindProperty]
+    public string idclient { get; set; } = "";
+    [BindProperty]
+    public string firstname { get; set; } = "";
+    [BindProperty]
+    public string lastname { get; set; } = "";
+    [BindProperty]
+    public string documenttypeid { get; set; } = "-1";
+    [BindProperty]
+    public string documentid { get; set; } = "";
+    [BindProperty]
+    public string idcollector { get; set; } = "-1";
+    [BindProperty]
+    public string idvendor { get; set; } = "-1";
+    [BindProperty]
+    public string clientaddress { get; set; } = "";
+    [BindProperty]
+    public string counter { get; set; } = "";
+    [BindProperty]
+    public string pole { get; set; } = "";
+    [BindProperty]
+    public string einnumber { get; set; } = "";
+    [BindProperty]
+    public string billingname { get; set; } = "";
+    [BindProperty]
+    public string billingaddress { get; set; } = "";
+    [BindProperty]
+    public string collectaddress { get; set; } = "";
+    [BindProperty]
+    public string clientstatus { get; set; } = "-1";
+    [BindProperty]
+    public string phonenumber { get; set; } = "";
+    [BindProperty]
+    public string email { get; set; } = "";
+    [BindProperty]
+    public string creationdate { get; set; } = DateTime.Today.ToShortDateString();
+    [BindProperty]
+    public string collectday { get; set; } = "";
+    [BindProperty]
+    public string dischargedate { get; set; } = "";
+    [BindProperty]
+    public string principaltvs { get; set; } = "";
+    [BindProperty]
+    public string additionaltvs { get; set; } = "";
+    [BindProperty]
+    public string filter { get; set; } = "";
+    [BindProperty]
+    public string idservice { get; set; } = "-1";
+    [BindProperty]
+    public string router { get; set; } = "";
+    [BindProperty]
+    public string macaddress { get; set; } = "";
+    [BindProperty]
+    public string idtypeofwallet { get; set; } = "-1";
+    [BindProperty]
+    public string idzipcoverage { get; set; } = "-1";
+    [BindProperty]
+    public string creationuser { get; set; } = "";
+    [BindProperty]
+    public string clientobs { get; set; } = "";
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                //conn.Close();
+                //conn = context.Database.GetDbConnection();
+                //conn.Open();
+                command = conn.CreateCommand();
+
+                query = "UPDATE internal_correlatives SET last_number = last_number + 1 WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'CONTRACTS'";
+                query = query + " SELECT last_number FROM internal_correlatives WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'CONTRACTS'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("last_number").ToString();
+                }
+                //conn.Close();
+                //conn = context.Database.GetDbConnection();
+                //conn.Open();
+                command = conn.CreateCommand();
+
+                query = "UPDATE internal_correlatives SET last_number = last_number + 1 WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'CLIENTS'";
+                query = query + " SELECT last_number FROM internal_correlatives WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'CLIENTS'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    idclient = reader.GetValue("last_number").ToString();
+                }
+
+
+                //conn = context.Database.GetDbConnection();
+                //conn.Open();
+                command = conn.CreateCommand();
+
+                query = "INSERT INTO hist_contracts SELECT ";
+                query = query + " " + id_branch + "";
+                query = query + ", " + idcontract + "";
+                query = query + ", UPPER('" + contractnum + "')";
+                query = query + ", " + idclient + "";
+                query = query + ", UPPER('" + firstname + "')";
+                query = query + ", UPPER('" + lastname + "')";
+                query = query + ", " + documenttypeid + "";
+                query = query + ", UPPER('" + documentid + "')";
+                query = query + ", " + idcollector + "";
+                query = query + ", " + idvendor + "";
+                query = query + ", UPPER('" + clientaddress + "')";
+                query = query + ", UPPER('" + counter + "')";
+                query = query + ", UPPER('" + pole + "')";
+                query = query + ", UPPER('" + einnumber + "')";
+                query = query + ", UPPER('" + billingname + "')";
+                query = query + ", UPPER('" + billingaddress + "')";
+                query = query + ", UPPER('" + collectaddress + "')";
+                query = query + ", 0" + clientstatus + "";
+                query = query + ", UPPER('" + phonenumber + "')";
+                query = query + ", UPPER('" + email + "')";
+                query = query + ", getdate()";
+                query = query + ", 0" + collectday + "";
+                query = query + ", null"; //discharge date 
+                query = query + ", 0" + principaltvs + "";
+                query = query + ", 0" + additionaltvs + "";
+                query = query + ", 0" + filter + "";
+                query = query + ", " + idservice + "";
+                query = query + ", UPPER('" + router + "')";
+                query = query + ", UPPER('" + macaddress + "')";
+                query = query + ", 0" + idtypeofwallet + "";
+                query = query + ", 0" + idzipcoverage + "";
+                query = query + ", UPPER('" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "')";
+                query = query + ", UPPER('" + clientobs + "')";
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+                idcontract = "";
+                contractnum = "";
+                idclient = "";
+                firstname = "";
+                lastname = "";
+                documentid = "";
+                clientaddress = "";
+                counter = "";
+                pole = "";
+                einnumber = "";
+                billingname = "";
+                billingaddress = "";
+                collectaddress = "";
+                phonenumber = "";
+                email = "";
+                collectday = "";
+                principaltvs = "";
+                additionaltvs = "";
+                filter = "";
+                router = "";
+                macaddress = "";
+                clientobs = "";
+            }
+            catch(Exception ex)
+            {
+                string sMsg = ex.Message;
+            }
+
+
+
+
+            NavigationManager.NavigateTo("/contracts");
+        }
+    }
+}
