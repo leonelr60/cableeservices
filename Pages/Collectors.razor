@@ -56,6 +56,9 @@
             <NavLink class="nav-link" href="collectorreport">
                 <span class="oi oi-print" aria-hidden="true"></span> Reporte
             </NavLink>
+            <NavLink class="nav-link" href="collectiondeposit">
+                <span class="oi oi-print" aria-hidden="true"></span> Cierre
+            </NavLink>
         </div>
         <table style="width:100%;">
             <tr>
@@ -407,7 +410,7 @@
                     command = conn.CreateCommand();
 
                     query = "SELECT ym_collect, imp_collect FROM hist_collections ";
-                    query = query + " WHERE id_branch = " +  id_branch + " AND  id_contract = ";
+                    query = query + " WHERE yn_payed = 0 AND yn_cancel = 0 AND id_branch = " +  id_branch + " AND  id_contract = ";
                     query = query + idcontract;
                     command.CommandText = query;
                     reader = command.ExecuteReader();
