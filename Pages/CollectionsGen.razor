@@ -1,0 +1,121 @@
+﻿@page "/collectionsgen"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+
+            query = "SELECT MAX(ym_process) rvalue FROM lastprocesscollections  WHERE id_branch = " + sIdBranch + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                lastprocess = reader.GetValue("rvalue").ToString();
+            }
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <h3>Generador Cobros</h3>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+        <p>Hacer tap o click para generar los cobros del mes corriente</p>
+        <label>Ultimo Proceso Generado: @lastprocess</label>
+        <br />
+        <br />
+        <button class="btn btn-primary" @onclick=@BtnClick>Generar</button>
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
+
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "EXEC ups_collectionsgen " + id_branch + ", '";
+                query = query + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+                NavigationManager.NavigateTo("/");
+            }
+            catch(Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+                    
+}
+            

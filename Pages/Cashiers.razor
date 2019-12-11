@@ -1,0 +1,537 @@
+﻿@page "/cashiers"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+
+            query = "SELECT MAX(ym_process) rvalue FROM lastprocesscollections  WHERE id_branch = " + sIdBranch + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                lastprocess = reader.GetValue("rvalue").ToString();
+            }
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <h3>Caja</h3>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+        
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Nro. Contrato Interno:</b></p></td>
+                <td>
+                    <input @bind-value="idcontract" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindIdContract>Buscar</button>
+
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nro. Contrato físico:</b></p></td>
+                <td>
+                    <input @bind-value="contractnum" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindPhysicalContract>Buscar</button>
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nombre(s):</b></p></td>
+                <td><input @bind-value="firstname" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Apellidos(s):</b></p></td>
+                <td>
+                    <input @bind-value="lastname" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindNames>Buscar</button>
+                    @if (bNames == true)
+                    {
+                        <select class="custom-select" @onchange=@ddlFindNames>
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+                                var conn = context.Database.GetDbConnection(); conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT id_contract, CONVERT(VARCHAR(38), id_contract) + ' - ' + last_name + ' ' + first_name txt_ccustomer FROM hist_contracts WHERE id_branch = " + sIdBranch + " AND (first_name like UPPER('%" + firstname + "%') AND last_name like UPPER('%" + lastname + "%')) ORDER BY last_name + ' ' + first_name";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_contract").ToString()">@reader.GetValue("txt_ccustomer").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    }
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Cuotas Pendientes:</b></p></td>
+                <td><input @bind-value="cntbalance" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
+            <tr>
+                <td><p><b>Saldo Pendiente:</b></p></td>
+                <td><input @bind-value="totbalance" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
+            <tr>
+                <td><p><b>Efectivo Cobrado:</b></p></td>
+                <td><input @bind-value="totcollectedcash" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Nro. Cheque:</b></p></td>
+                <td><input @bind-value="totcollecteddoc" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Importe Cheque:</b></p></td>
+                <td><input @bind-value="totcollectedcheck" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>T/C Cobrado:</b></p></td>
+                <td><input @bind-value="totcollectedcard" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Aut. Tecnica:</b></p></td>
+                <td><input @bind-value="totcollectedauttec" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Observaciones:</b></p></td>
+                <td><input @bind-value="txtobs" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><button class="btn btn-primary" @onclick=@BtnClick>Generar</button></td>
+                <td></td>
+            </tr>
+        </table>
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
+
+    [BindProperty]
+    public DateTime newdatecollect { get; set; } = DateTime.Today;
+
+    [BindProperty]
+    public string txtobs { get; set; } = "";
+
+    [BindProperty]
+    public bool bNames { get; set; } = false;
+
+    [BindProperty]
+    public string idcontract { get; set; } = "";
+    [BindProperty]
+    public string contractnum { get; set; } = "";
+    [BindProperty]
+    public string idclient { get; set; } = "";
+    [BindProperty]
+    public string firstname { get; set; } = "";
+    [BindProperty]
+    public string lastname { get; set; } = "";
+    [BindProperty]
+    public double totbalance { get; set; } = 0.00;
+    [BindProperty]
+    public int cntbalance { get; set; } = 0;
+    [BindProperty]
+    public string totcollectedcash { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcheck { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcard { get; set; } = "";
+    [BindProperty]
+    public string totcollecteddoc { get; set; } = "";
+    [BindProperty]
+    public string totcollectedauttec { get; set; } = "";
+    [BindProperty]
+    public string collectyearmonth { get; set; } = "";
+
+    private void cleanscreen()
+    {
+        txtobs = "";
+        bNames = false;
+        idcontract = "";
+        contractnum = "";
+        idclient = "";
+        firstname = "";
+        lastname = "";
+        totbalance = 0.00;
+        cntbalance = 0;
+        totcollectedcash = "";
+        totcollectedcheck = "";
+        totcollectedcard = "";
+        totcollecteddoc = "";
+        totcollectedauttec = "";
+        collectyearmonth = "";
+    }
+
+    private void ddlFindNames(ChangeEventArgs e)
+    {
+        msgBox = "";
+        idcontract = e.Value.ToString();
+        bNames = false;
+        BtnFindIdContract();
+    }
+
+    private void FindBalance()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT *  FROM hist_collections WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_contract = " + idcontract + "";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El cliente no tiene saldo pendiente...";
+
+                totbalance = 0.00;
+                cntbalance = 0;
+
+                while (reader.Read())
+                {
+                    totbalance = totbalance + double.Parse(reader.GetValue("imp_collect").ToString());
+                    cntbalance = cntbalance + 1;
+
+                }
+
+                conn.Close();
+
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindIdContract()
+    {
+        msgBox = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date  FROM hist_contracts WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_contract = " + idcontract + "";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+
+    }
+    private void BtnFindPhysicalContract()
+    {
+        msgBox = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date FROM hist_contracts WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND physical_contract = '" + contractnum + "'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindNames()
+    {
+        msgBox = "";
+        bNames = true;
+    }
+
+    private void BtnClick()
+    {
+        double dTot = 0.00;
+        bool bApplied = false;
+        if (totcollectedcash.Length == 0)
+            totcollectedcash = "0";
+        if (totcollectedcheck.Length == 0)
+            totcollectedcheck = "0";
+        if (totcollectedcard.Length == 0)
+            totcollectedcard = "0";
+        dTot = double.Parse(totcollectedcash) + double.Parse(totcollectedcheck) + double.Parse(totcollectedcard);
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                if (dTot > 0)
+                {
+                    command = conn.CreateCommand();
+
+                    query = "SELECT ym_collect, imp_collect FROM hist_collections ";
+                    query = query + " WHERE id_branch = " + id_branch + " AND  id_contract = ";
+                    query = query + idcontract;
+                    command.CommandText = query;
+                    reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        bApplied = false;
+                        var dInput = 0.00;
+                        double dImp = Double.Parse(reader.GetValue("imp_collect").ToString());
+                        if (dImp <= dTot)
+                        {
+                            if (Double.Parse(totcollectedcash) > 0 && (bApplied == false))
+                            {
+                                if (dImp > Double.Parse(totcollectedcash))
+                                    dInput = Double.Parse(totcollectedcash);
+                                else
+                                    dInput = dImp;
+
+                                var command2 = conn.CreateCommand();
+
+                                query = "UPDATE hist_collections SET  ";
+                                query = query + " txt_collector_obs = UPPER('" + txtobs + "')";
+                                query = query + ", date_collected = getdate()";
+                                query = query + ", imp_payment_cash = 0" + dInput + "";
+                                query = query + " WHERE id_branch = " + id_branch + " AND  id_contract = ";
+                                query = query + idcontract + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                                command2.CommandText = query;
+                                command2.ExecuteNonQuery();
+                                totcollectedcash = (double.Parse(totcollectedcash) - dInput).ToString();
+                                dTot = dTot - dInput;
+                                bApplied = true;
+                            }
+                            if (Double.Parse(totcollectedcheck) > 0 && (bApplied == false || (bApplied == true && dTot > 0)))
+                            {
+                                if (dImp > Double.Parse(totcollectedcheck))
+                                    dInput = Double.Parse(totcollectedcheck);
+                                else
+                                    dInput = dImp;
+                                var command2 = conn.CreateCommand();
+
+                                query = "UPDATE hist_collections SET  ";
+                                query = query + " txt_collector_obs = UPPER('" + txtobs + "')";
+                                query = query + ", date_collected = getdate()";
+                                query = query + ", imp_payment_check = 0" + dInput + "";
+                                query = query + ", txt_payment_doc = UPPER('" + totcollecteddoc + "')";
+                                query = query + " WHERE id_branch = " + id_branch + " AND  id_contract = ";
+                                query = query + idcontract + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                                command2.CommandText = query;
+                                command2.ExecuteNonQuery();
+                                totcollectedcheck = (double.Parse(totcollectedcheck) - dInput).ToString();
+                                dTot = dTot - dInput;
+                                bApplied = true;
+                            }
+                            if (Double.Parse(totcollectedcard) > 0 && (bApplied == false || (bApplied == true && dTot > 0)))
+                            {
+                                if (dImp > Double.Parse(totcollectedcard))
+                                    dInput = Double.Parse(totcollectedcard);
+                                else
+                                    dInput = dImp;
+                                var command2 = conn.CreateCommand();
+
+                                query = "UPDATE hist_collections SET  ";
+                                query = query + " txt_collector_obs = UPPER('" + txtobs + "')";
+                                query = query + ", date_collected = getdate()";
+                                query = query + ", imp_payment_card = 0" + dInput + "";
+                                query = query + ", txt_payment_aut = UPPER('" + totcollectedauttec + "')";
+                                query = query + " WHERE id_branch = " + id_branch + " AND  id_contract = ";
+                                query = query + idcontract + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                                command2.CommandText = query;
+                                command2.ExecuteNonQuery();
+                                totcollectedcard = (double.Parse(totcollectedcard) - dInput).ToString();
+                                dTot = dTot - dInput;
+                                bApplied = true;
+                            }
+
+                            if (bApplied == true)
+                            {
+                                var command2 = conn.CreateCommand();
+                                var sSerial = "";
+                                var sCorrela = "";
+
+                                query = "UPDATE internal_correlatives SET last_number = last_number + 1 WHERE ";
+                                query = query + " id_branch = " + id_branch + "";
+                                query = query + " AND yn_active = -1 AND id_correlative = 'BILLING'";
+                                query = query + " SELECT last_number, id_serial FROM internal_correlatives WHERE ";
+                                query = query + " id_branch = " + id_branch + "";
+                                query = query + " AND yn_active = -1 AND id_correlative = 'BILLING'";
+                                command2.CommandText = query;
+                                var reader2 = command2.ExecuteReader();
+
+                                while (reader2.Read())
+                                {
+                                    sCorrela = reader2.GetValue("last_number").ToString();
+                                    sSerial = reader2.GetValue("id_serial").ToString();
+                                }
+                                command2 = conn.CreateCommand();
+
+                                query = "UPDATE hist_collections SET  ";
+                                query = query + " yn_payed = -1, yn_cashier = -1";
+                                query = query + ", txt_physical_serie = '" + sSerial + "', txt_physical_invoice = '" + sCorrela + "', creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                                query = query + " WHERE id_branch = " + id_branch + " AND  id_contract = ";
+                                query = query + idcontract + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                                command2.CommandText = query;
+                                command2.ExecuteNonQuery();
+                            }
+                        }
+
+                    }
+
+                }
+
+                conn.Close();
+                cleanscreen();
+                NavigationManager.NavigateTo("/cashiers");
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
+}
+

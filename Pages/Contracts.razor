@@ -41,6 +41,7 @@
         <Authorized>
             <h3>Contratos</h3>
             <br />
+            <label style="color:darkred;">@msgBox</label>
             <table style="width:100%;">
 
                 <tr>
@@ -64,11 +65,13 @@
                     <td>
                         <select class="custom-select" @bind="documenttypeid">
                             <option value="-1">Seleccione una opción</option>
-                            @using (var context = new Data.SQLContext()) {  
-                                var conn = context.Database.GetDbConnection(); conn.Open(); 
-                                var command = conn.CreateCommand(); 
-                                string query = "SELECT * FROM client_type_doc WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY id_type_doc"; command.CommandText = query; var reader = command.ExecuteReader();  while (reader.Read()) {
-                            <option value="@reader.GetValue("id_type_doc").ToString()">@reader.GetValue("txt_type_doc").ToString()</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+                                var conn = context.Database.GetDbConnection(); conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT * FROM client_type_doc WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY id_type_doc"; command.CommandText = query; var reader = command.ExecuteReader(); while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_type_doc").ToString()">@reader.GetValue("txt_type_doc").ToString()</option>
 
                                 }
 
@@ -105,7 +108,7 @@
                     <td><p><b>Colonia:</b></p></td>
                     <td>
                         <select class="custom-select" @bind="idzipcoverage">
-                            <option value="-1">Seleccione una opción</option>
+                            <option value="0">Seleccione una opción</option>
                             @using (var context = new Data.SQLContext())
                             {
 
@@ -125,16 +128,17 @@
                                 conn.Close();
                             }
                         </select>
+                        <button class="btn btn-primary" @onclick=@BtnFindIdCobert>Cargar Cobertura</button>
                     </td>
                 </tr>
                 <tr>
                     <td><p><b>Servicio:</b></p></td>
                     <td>
                         <select class="custom-select" @bind="idservice">
-                            <option value="-1">Seleccione una opción</option>
+                            <option value="0">Seleccione una opción</option>
                             @using (var context = new Data.SQLContext())
                             {
-
+                                
                                 var conn = context.Database.GetDbConnection();
                                 conn.Open();
                                 var command = conn.CreateCommand();
@@ -227,7 +231,7 @@
                 </tr>
                 <tr>
                     <td><p><b>Fecha Apertura:</b></p></td>
-                    <td><input @bind-value="creationdate" @bind-value:event="oninput" class="form-control" readonly/></td>
+                    <td><input @bind-value="creationdate" @bind-value:event="oninput" class="form-control" readonly /></td>
                 </tr>
                 <tr>
                     <td><p><b>Estado:</b></p></td>
@@ -257,7 +261,7 @@
                 </tr>
                 <tr>
                     <td><p><b>Fecha Baja:</b></p></td>
-                    <td><input @bind-value="dischargedate" @bind-value:event="oninput" class="form-control" /></td>
+                    <td><input @bind-value="dischargedate" @bind-value:event="oninput" class="form-control" readonly /></td>
                 </tr>
                 <tr>
                     <td><p><b>TV Principal:</b></p></td>
@@ -323,6 +327,8 @@
     </AuthorizeView>
 @code {
     [BindProperty]
+    public string msgBox { get; set; } = "";
+    [BindProperty]
     public string id_branch { get; set; } = "";
     [BindProperty]
     public string idcontract { get; set; } = "";
@@ -375,7 +381,7 @@
     [BindProperty]
     public string filter { get; set; } = "";
     [BindProperty]
-    public string idservice { get; set; } = "-1";
+    public string idservice { get; set; } = "0";
     [BindProperty]
     public string router { get; set; } = "";
     [BindProperty]
@@ -383,14 +389,20 @@
     [BindProperty]
     public string idtypeofwallet { get; set; } = "-1";
     [BindProperty]
-    public string idzipcoverage { get; set; } = "-1";
+    public string idzipcoverage { get; set; } = "0";
     [BindProperty]
     public string creationuser { get; set; } = "";
     [BindProperty]
     public string clientobs { get; set; } = "";
 
+    private void BtnFindIdCobert()
+    {
+        idservice = "0";
+    }
+
     private void BtnClick()
     {
+        msgBox = "";
         using (var context = new Data.SQLContext())
         {
             try
@@ -488,38 +500,45 @@
 
                 conn.Close();
 
-                idcontract = "";
-                contractnum = "";
-                idclient = "";
-                firstname = "";
-                lastname = "";
-                documentid = "";
-                clientaddress = "";
-                counter = "";
-                pole = "";
-                einnumber = "";
-                billingname = "";
-                billingaddress = "";
-                collectaddress = "";
-                phonenumber = "";
-                email = "";
-                collectday = "";
-                principaltvs = "";
-                additionaltvs = "";
-                filter = "";
-                router = "";
-                macaddress = "";
-                clientobs = "";
+                cleanscreen();
+                msgBox = "Datos guardados exitosamente...";
             }
             catch(Exception ex)
             {
                 string sMsg = ex.Message;
+                msgBox = sMsg;
             }
 
 
 
 
-            NavigationManager.NavigateTo("/contracts");
+
         }
+    }
+    private void cleanscreen()
+    {
+        msgBox = "";
+        idcontract = "";
+        contractnum = "";
+        idclient = "";
+        firstname = "";
+        lastname = "";
+        documentid = "";
+        clientaddress = "";
+        counter = "";
+        pole = "";
+        einnumber = "";
+        billingname = "";
+        billingaddress = "";
+        collectaddress = "";
+        phonenumber = "";
+        email = "";
+        collectday = "";
+        principaltvs = "";
+        additionaltvs = "";
+        filter = "";
+        router = "";
+        macaddress = "";
+        clientobs = "";
     }
 }

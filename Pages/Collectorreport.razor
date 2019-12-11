@@ -1,0 +1,139 @@
+﻿@page "/collectorreport"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+    @inject IJSRuntime jsRuntime
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdCollector = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT id_coworker FROM coworkers_catalog  WHERE txt_email = '" + oUser + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdCollector = reader.GetValue("id_coworker").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <div class="row" >
+            <div style="width:100%; text-align:right;">
+                <button class="btn btn-primary" @onclick="printRep">Imprimir</button>
+                <button class="btn btn-primary" @onclick="exportRep">Exportar</button>
+            </div>
+        </div>
+            
+
+            <div id="AreaImpresion">
+                <h3>Reporte Ruta de Cobros</h3>
+                <h6>@DateTime.Now <br /> @oUser</h6>
+
+                <hr />
+                <label style="color:darkred;">@msgBox</label>
+
+                <table style="width:100%;">
+                    <tr>
+                        <td><p><b>Contrato</b></p></td>
+                        <td><p><b>Colonia</b></p></td>
+                        <td><p><b>Cliente</b></p></td>
+                        <td><p><b>NIT</b></p></td>
+                        <td><p><b>Facturar a</b></p></td>
+                        <td><p><b>Dir. Cobro</b></p></td>
+                        <td><p><b>Contador</b></p></td>
+                        <td><p><b>Poste</b></p></td>
+                        <td><p><b>Mes</b></p></td>
+                        <td><p><b>Saldo</b></p></td>
+                    </tr>
+                    @using (var context = new Data.SQLContext())
+                    {
+                        var conn = context.Database.GetDbConnection(); conn.Open();
+                        var command = conn.CreateCommand();
+                        string query = "SELECT id_contract, id_zip_coverage, id_client, last_name + ' ' + first_name txt_ccustomer, billing_name, collect_address, txt_counter, txt_pole, ym_collect, imp_collect, ein_number  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = 0 AND yn_cancel = 0) AND newdate_collect IS NULL ";
+                        query = query + " UNION ALL SELECT id_contract, id_zip_coverage, id_client, last_name + ' ' + first_name txt_ccustomer, billing_name, collect_address, txt_counter, txt_pole, ym_collect, imp_collect, ein_number  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = 0 AND yn_cancel = 0) AND newdate_collect <= CONVERT(VARCHAR(10),getdate(),112) ORDER BY id_zip_coverage, collect_address, last_name + ' ' + first_name, ym_collect";
+                        
+                        command.CommandText = query;
+                        var reader = command.ExecuteReader();
+                        while (reader.Read())
+                        {
+                            <tr>
+                                <td><p>@reader.GetValue("id_contract").ToString()</p></td>
+                                <td><p>@reader.GetValue("id_zip_coverage").ToString()</p></td>
+                                <td><p>@reader.GetValue("id_client").ToString() - @reader.GetValue("txt_ccustomer").ToString()</p></td>
+                                <td><p>@reader.GetValue("ein_number").ToString()</p></td>
+                                <td><p>@reader.GetValue("billing_name").ToString()</p></td>
+                                <td><p>@reader.GetValue("collect_address").ToString()</p></td>
+                                <td><p>@reader.GetValue("txt_counter").ToString()</p></td>
+                                <td><p>@reader.GetValue("txt_pole").ToString()</p></td>
+                                <td><p>@reader.GetValue("ym_collect").ToString()</p></td>
+                                <td><p>@reader.GetValue("imp_collect").ToString()</p></td>
+                            </tr>
+                        }
+
+                        conn.Close();
+                    }
+
+                </table>
+            </div>
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    
+
+    private void printRep()
+    {
+        //jsRuntime.InvokeAsync<bool>("ShowAlert","Edgar");
+        jsRuntime.InvokeAsync<bool>("imprimir");
+        
+    }
+
+    private void exportRep()
+    {
+        jsRuntime.InvokeAsync<bool>("downloadCSV");
+        
+    }
+
+}
+
