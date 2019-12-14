@@ -1,0 +1,138 @@
+﻿@page "/installerreport"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+    @inject IJSRuntime jsRuntime
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdTec = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT cc.id_coworker FROM coworkers_catalog cc INNER JOIN installers i ON i.id_branch = cc.id_branch and i.id_coworker = cc.id_coworker  WHERE cc.txt_email = '" + oUser + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdTec = reader.GetValue("id_coworker").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <div class="row">
+            <div style="width:100%; text-align:right;">
+                <button class="btn btn-primary" @onclick="printRep">Imprimir</button>
+                <button class="btn btn-primary" @onclick="exportRep">Exportar</button>
+            </div>
+        </div>
+
+
+        <div id="AreaImpresion">
+            <h3>Reporte OTs</h3>
+            <h6>@DateTime.Now <br /> @oUser</h6>
+
+            <hr />
+            <label style="color:darkred;">@msgBox</label>
+
+            <table style="width:100%;">
+                <tr>
+                    <td><p><b>Nro. OT</b></p></td>
+                    <td><p><b>Tipo</b></p></td>
+                    <td><p><b>Contrato</b></p></td>
+                    <td><p><b>Colonia</b></p></td>
+                    <td><p><b>Cliente</b></p></td>
+                    
+                    <td><p><b>Dir.</b></p></td>
+                    <td><p><b>Contador</b></p></td>
+                    <td><p><b>Poste</b></p></td>
+
+                </tr>
+                @using (var context = new Data.SQLContext())
+                {
+                    var conn = context.Database.GetDbConnection(); conn.Open();
+                    var command = conn.CreateCommand();
+                    string query = "SELECT tto.txt_to, t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.*, z.* FROM hist_technicalorders t1 INNER JOIN types_technical_ordes tto ON tto.id_branch = t1.id_branch AND tto.yn_active = -1 AND tto.id_to = t1.id_to INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t2.id_zip_coverage WHERE ";
+                        query = query + " t1.id_branch = " + sIdBranch + "";
+                        query = query + " AND t1.id_tec = " + sIdTec + " AND t1.id_status NOT IN (SELECT id_status FROM technical_orders_status WHERE id_branch = " + sIdBranch + " AND (yn_closews = -1 OR yn_closewos = -1))";
+                    command.CommandText = query;
+                    var reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+            <tr>
+                <td><p>@reader.GetValue("id_to_correla").ToString()</p></td>
+                <td><p>@reader.GetValue("txt_to").ToString()</p></td>
+                <td><p>@reader.GetValue("id_contract").ToString()</p></td>
+                <td><p>@reader.GetValue("id_zip_coverage").ToString() - @reader.GetValue("txt_zip").ToString()</p></td>
+                <td><p>@reader.GetValue("id_client").ToString() - @reader.GetValue("last_name").ToString() @reader.GetValue("first_name").ToString()</p></td>
+                <td><p>@reader.GetValue("client_address").ToString()</p></td>
+                <td><p>@reader.GetValue("txt_counter").ToString()</p></td>
+                <td><p>@reader.GetValue("txt_pole").ToString()</p></td>
+
+            </tr>
+                    }
+
+                    conn.Close();
+                }
+
+            </table>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+
+
+    private void printRep()
+    {
+        //jsRuntime.InvokeAsync<bool>("ShowAlert","Edgar");
+        jsRuntime.InvokeAsync<bool>("imprimir");
+
+    }
+
+    private void exportRep()
+    {
+        jsRuntime.InvokeAsync<bool>("downloadCSV");
+
+    }
+
+}
+

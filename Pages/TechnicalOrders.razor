@@ -1,0 +1,612 @@
+﻿@page "/technicalorders"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <h3>Órdenes Técnicas</h3>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Nro. Contrato Interno:</b></p></td>
+                <td>
+                    <input @bind-value="idcontract" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindIdContract>Buscar</button>
+
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nro. Contrato físico:</b></p></td>
+                <td>
+                    <input @bind-value="contractnum" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindPhysicalContract>Buscar</button>
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nombre(s):</b></p></td>
+                <td><input @bind-value="firstname" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Apellidos(s):</b></p></td>
+                <td>
+                    <input @bind-value="lastname" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindNames>Buscar</button>
+                    @if (bNames == true)
+                    {
+                        <select class="custom-select" @onchange=@ddlFindNames>
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+                                var conn = context.Database.GetDbConnection(); conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT id_contract, CONVERT(VARCHAR(38), id_contract) + ' - ' + last_name + ' ' + first_name txt_ccustomer FROM hist_contracts WHERE id_branch = " + sIdBranch + " AND (first_name like UPPER('%" + firstname + "%') AND last_name like UPPER('%" + lastname + "%')) ORDER BY last_name + ' ' + first_name";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_contract").ToString()">@reader.GetValue("txt_ccustomer").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nro. Órden Técnica:</b></p></td>
+                <td>
+                    <input @bind-value="idtechnicalorder" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindTO>Buscar</button>
+
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Cuotas Pendientes:</b></p></td>
+                <td><input @bind-value="cntbalance" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
+            <tr>
+                <td><p><b>Saldo Pendiente:</b></p></td>
+                <td><input @bind-value="totbalance" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
+            <tr>
+                <td><p><b>Tipo de Órden:</b></p></td>
+                <td>
+                    <select class="custom-select" @bind="idtypeorder">
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+                            var conn = context.Database.GetDbConnection(); conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT id_to, txt_to FROM types_technical_ordes WHERE id_branch = " + sIdBranch + " AND yn_active = -1 ORDER BY txt_to";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+                            while (reader.Read())
+                            {
+                                <option value="@reader.GetValue("id_to").ToString()">@reader.GetValue("txt_to").ToString()</option>
+
+                            }
+
+                            conn.Close();
+                        }
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Estado:</b></p></td>
+                <td>
+                    <select class="custom-select" @bind="idstatusorder">
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+                            var conn = context.Database.GetDbConnection(); conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT id_status, txt_status FROM technical_orders_status WHERE id_branch = " + sIdBranch + " AND yn_active = -1 ORDER BY txt_status";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+                            while (reader.Read())
+                            {
+                                <option value="@reader.GetValue("id_status").ToString()">@reader.GetValue("txt_status").ToString()</option>
+
+                            }
+
+                            conn.Close();
+                        }
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Fecha Órden:</b></p></td>
+                <td><input type="date" @bind-value="dateorder" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Técnico:</b></p></td>
+                <td>
+                    <select class="custom-select" @bind="idtec">
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+
+                            var conn = context.Database.GetDbConnection();
+                            conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT cc.* FROM coworkers_catalog cc INNER JOIN installers c ON c.id_branch = cc.id_branch AND c.id_coworker = cc.id_coworker WHERE cc.yn_active = -1 AND cc.id_branch = " + sIdBranch + " ORDER BY cc.txt_lastname, cc.txt_firstname";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+
+                            while (reader.Read())
+                            {
+                                <option value="@reader.GetValue("id_coworker").ToString()">@reader.GetValue("txt_lastname").ToString() @reader.GetValue("txt_firstname").ToString()</option>
+
+                            }
+
+                            conn.Close();
+                        }
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Ref. Llamada:</b></p></td>
+                <td><input @bind-value="txtref" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Problema:</b></p></td>
+                <td><input @bind-value="txtproblema" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><button class="btn btn-primary" @onclick=@BtnClick>Generar</button></td>
+                <td></td>
+            </tr>
+        </table>
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
+
+    [BindProperty]
+    public DateTime dateorder { get; set; } = DateTime.Today;
+
+    [BindProperty]
+    public string txtobs { get; set; } = "";
+
+    [BindProperty]
+    public bool bNames { get; set; } = false;
+    [BindProperty]
+    public string idstatusorder { get; set; } = "1";
+    [BindProperty]
+    public string idtec { get; set; } = "";
+    [BindProperty]
+    public string idtechnicalorder { get; set; } = "";
+    [BindProperty]
+    public string realidtechnicalorder { get; set; } = "";
+    [BindProperty]
+    public string txtref { get; set; } = "";
+    [BindProperty]
+    public string txtproblema { get; set; } = "";
+    [BindProperty]
+    public string idtypeorder { get; set; } = "";
+    [BindProperty]
+    public string idcontract { get; set; } = "";
+    [BindProperty]
+    public string contractnum { get; set; } = "";
+    [BindProperty]
+    public string idclient { get; set; } = "";
+    [BindProperty]
+    public string firstname { get; set; } = "";
+    [BindProperty]
+    public string lastname { get; set; } = "";
+    [BindProperty]
+    public double totbalance { get; set; } = 0.00;
+    [BindProperty]
+    public int cntbalance { get; set; } = 0;
+    [BindProperty]
+    public string totcollectedcash { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcheck { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcard { get; set; } = "";
+    [BindProperty]
+    public string totcollecteddoc { get; set; } = "";
+    [BindProperty]
+    public string totcollectedauttec { get; set; } = "";
+    [BindProperty]
+    public string collectyearmonth { get; set; } = "";
+
+    private void cleanscreen()
+    {
+        txtobs = "";
+        bNames = false;
+        idcontract = "";
+        contractnum = "";
+        idclient = "";
+        firstname = "";
+        lastname = "";
+        totbalance = 0.00;
+        cntbalance = 0;
+        totcollectedcash = "";
+        totcollectedcheck = "";
+        totcollectedcard = "";
+        totcollecteddoc = "";
+        totcollectedauttec = "";
+        collectyearmonth = "";
+        realidtechnicalorder = "";
+        idtec  = "";
+        idtechnicalorder = "";
+        txtref = "";
+        txtproblema = "";
+        realidtechnicalorder = "";
+    }
+
+    private void ddlFindNames(ChangeEventArgs e)
+    {
+        realidtechnicalorder = "";
+        msgBox = "";
+        idcontract = e.Value.ToString();
+        bNames = false;
+        BtnFindIdContract();
+    }
+
+    private void FindBalance()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT *  FROM hist_collections WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_contract = " + idcontract + "";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El cliente no tiene saldo pendiente...";
+
+                totbalance = 0.00;
+                cntbalance = 0;
+
+                while (reader.Read())
+                {
+                    totbalance = totbalance + double.Parse(reader.GetValue("imp_collect").ToString());
+                    cntbalance = cntbalance + 1;
+
+                }
+
+                conn.Close();
+
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindIdContract()
+    {
+        msgBox = "";
+        realidtechnicalorder = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date  FROM hist_contracts WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_contract = " + idcontract + "";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+
+    }
+    private void BtnFindPhysicalContract()
+    {
+        msgBox = "";
+        realidtechnicalorder = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date FROM hist_contracts WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND physical_contract = '" + contractnum + "'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindTO()
+    {
+        msgBox = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            realidtechnicalorder = "";
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name FROM hist_technicalorders t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
+                query = query + " t1.id_branch = " + id_branch + "";
+                query = query + " AND t1.id_to_correla = " + idtechnicalorder + "";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+                    realidtechnicalorder = reader.GetValue("id_to_correla").ToString();
+                    idstatusorder = reader.GetValue("id_status").ToString();
+                    idtypeorder = reader.GetValue("id_to").ToString();
+                    idtec = reader.GetValue("id_tec").ToString();
+                    txtref = reader.GetValue("txt_ref").ToString();
+                    txtproblema = reader.GetValue("txt_problem").ToString();
+                    dateorder = DateTime.Parse(reader.GetValue("dateorder").ToString());
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindNames()
+    {
+        msgBox = "";
+        bNames = true;
+    }
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var sCorrela = "";
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+
+                command = conn.CreateCommand();
+
+                if (realidtechnicalorder.Length > 0)
+                {
+                    query = "UPDATE hist_technicalorders SET ";
+
+                    query = query + " id_to = " + idtypeorder + "";
+                    query = query + ", id_status = " + idstatusorder + "";
+                    query = query + ", id_tec = " + idtec + "";
+                    query = query + ", date_modif = getdate() ";
+                    query = query + ", date_to = '" + dateorder.Date.ToString("yyyyMMdd") + "'";
+                    query = query + ", txt_ref = '" + txtref + "'";
+                    query = query + ", txt_problem = '" + txtproblema + "'";
+                    query = query + " WHERE id_to_correla = " + realidtechnicalorder;
+                    query = query + " AND id_branch = " + id_branch + "";
+                    query = query + " AND id_contract = " + idcontract + "";
+                    query = query + " AND id_status not in (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND yn_active = -1 AND (yn_closews = -1 OR yn_closewos = -1))";
+                    command.CommandText = query;
+                    command.ExecuteNonQuery();
+                    msgBox = "OT " + realidtechnicalorder.ToString() + " guardada correctamente...";
+            }
+                else
+            {
+                query = "UPDATE internal_correlatives SET last_number = last_number + 1 WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'TECORDERS'";
+                query = query + " SELECT last_number, id_serial FROM internal_correlatives WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'TECORDERS'";
+                command.CommandText = query;
+                var reader2 = command.ExecuteReader();
+
+                while (reader2.Read())
+                {
+                    sCorrela = reader2.GetValue("last_number").ToString();
+
+                }
+                command = conn.CreateCommand();
+
+                query = "INSERT INTO hist_technicalorders SELECT ";
+                query = query + " " + id_branch + "";
+                query = query + ", " + idcontract + "";
+                query = query + ", " + sCorrela + "";
+                query = query + ", " + idtypeorder + "";
+                query = query + ", " + idstatusorder + "";
+                query = query + ", " + idtec + "";
+                query = query + ", getdate() ";
+                query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
+                query = query + ", '" + txtref + "'";
+                query = query + ", '" + txtproblema + "', null, null";
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+                    msgBox = "OT " + sCorrela.ToString() + " creada correctamente...";
+            }
+
+
+
+
+            conn.Close();
+            cleanscreen();
+            NavigationManager.NavigateTo("/technicalorders");
+        }
+            catch (Exception ex)
+        {
+            string sMsg = ex.Message;
+            msgBox = sMsg;
+        }
+
+
+
+
+
+    }
+
+}
+
+}
+

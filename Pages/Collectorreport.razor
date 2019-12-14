@@ -82,8 +82,8 @@
                     {
                         var conn = context.Database.GetDbConnection(); conn.Open();
                         var command = conn.CreateCommand();
-                        string query = "SELECT id_contract, id_zip_coverage, id_client, last_name + ' ' + first_name txt_ccustomer, billing_name, collect_address, txt_counter, txt_pole, ym_collect, imp_collect, ein_number  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = 0 AND yn_cancel = 0) AND newdate_collect IS NULL ";
-                        query = query + " UNION ALL SELECT id_contract, id_zip_coverage, id_client, last_name + ' ' + first_name txt_ccustomer, billing_name, collect_address, txt_counter, txt_pole, ym_collect, imp_collect, ein_number  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = 0 AND yn_cancel = 0) AND newdate_collect <= CONVERT(VARCHAR(10),getdate(),112) ORDER BY id_zip_coverage, collect_address, last_name + ' ' + first_name, ym_collect";
+                        string query = "SELECT t1.id_contract, t1.id_zip_coverage, t1.id_client, t1.last_name + ' ' + t1.first_name txt_ccustomer, t1.billing_name, t1.collect_address, t1.txt_counter, t1.txt_pole, t1.ym_collect, t1.imp_collect, t1.ein_number, z.*  FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage WHERE t1.id_branch = " + sIdBranch + " AND t1.id_collector = " + sIdCollector + " AND (t1.yn_payed = 0 AND t1.yn_cancel = 0) AND t1.newdate_collect IS NULL ";
+                        query = query + " UNION ALL SELECT t1.id_contract, t1.id_zip_coverage, t1.id_client, t1.last_name + ' ' + t1.first_name txt_ccustomer, t1.billing_name, t1.collect_address, t1.txt_counter, t1.txt_pole, t1.ym_collect, t1.imp_collect, t1.ein_number, z.*  FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage WHERE t1.id_branch = " + sIdBranch + " AND t1.id_collector = " + sIdCollector + " AND (t1.yn_payed = 0 AND t1.yn_cancel = 0) AND t1.newdate_collect <= CONVERT(VARCHAR(10),getdate(),112) ORDER BY t1.id_zip_coverage, t1.collect_address, t1.last_name + ' ' + t1.first_name, t1.ym_collect";
                         
                         command.CommandText = query;
                         var reader = command.ExecuteReader();
@@ -91,7 +91,7 @@
                         {
                             <tr>
                                 <td><p>@reader.GetValue("id_contract").ToString()</p></td>
-                                <td><p>@reader.GetValue("id_zip_coverage").ToString()</p></td>
+                                <td><p>@reader.GetValue("id_zip_coverage").ToString() - @reader.GetValue("txt_zip").ToString()</p></td>
                                 <td><p>@reader.GetValue("id_client").ToString() - @reader.GetValue("txt_ccustomer").ToString()</p></td>
                                 <td><p>@reader.GetValue("ein_number").ToString()</p></td>
                                 <td><p>@reader.GetValue("billing_name").ToString()</p></td>
