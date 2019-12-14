@@ -52,32 +52,58 @@
         <h3>Caja</h3>
         <hr />
         <label style="color:darkred;">@msgBox</label>
-        
+
         <table style="width:100%;">
             <tr>
-                <td><p><b>Nro. Contrato Interno:</b></p></td>
                 <td>
-                    <input @bind-value="idcontract" @bind-value:event="oninput" class="form-control" />
-                    <button class="btn btn-primary" @onclick=@BtnFindIdContract>Buscar</button>
-
+                    <p><b>Nro. Contrato Interno:</b></p>
+                    <table style="width:100%;">
+                        <tr>
+                            <td style="width:50%;">
+                                <input @bind-value="idcontract" @bind-value:event="oninput" class="form-control" />
+                            </td>
+                            <td style="width:50%;">
+                                <button class="btn btn-primary" @onclick=@BtnFindIdContract>Buscar</button>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    
+                </td>
+                <td>
+                    <p><b>Nro. Contrato físico:</b></p>
+                    <table style="width:100%;">
+                        <tr>
+                            <td style="width:50%;">
+                                <input @bind-value="contractnum" @bind-value:event="oninput" class="form-control" />
+                            </td>
+                            <td style="width:50%;">
+                                <button class="btn btn-primary" @onclick=@BtnFindPhysicalContract>Buscar</button>
+                            </td>
+                        </tr>
+                    </table>
+                    
                 </td>
             </tr>
             <tr>
-                <td><p><b>Nro. Contrato físico:</b></p></td>
                 <td>
-                    <input @bind-value="contractnum" @bind-value:event="oninput" class="form-control" />
-                    <button class="btn btn-primary" @onclick=@BtnFindPhysicalContract>Buscar</button>
+                    <p><b>Nombre(s):</b></p>
+                    <input @bind-value="firstname" @bind-value:event="oninput" class="form-control" />
                 </td>
-            </tr>
-            <tr>
-                <td><p><b>Nombre(s):</b></p></td>
-                <td><input @bind-value="firstname" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><p><b>Apellidos(s):</b></p></td>
                 <td>
-                    <input @bind-value="lastname" @bind-value:event="oninput" class="form-control" />
-                    <button class="btn btn-primary" @onclick=@BtnFindNames>Buscar</button>
+                    <p><b>Apellidos(s):</b></p>
+                    <table style="width:100%;">
+                        <tr>
+                            <td style="width:50%;">
+                                <input @bind-value="lastname" @bind-value:event="oninput" class="form-control" />
+                            </td>
+                            <td style="width:50%;">
+                                <button class="btn btn-primary" @onclick=@BtnFindNames>Buscar</button>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    
                     @if (bNames == true)
                     {
                         <select class="custom-select" @onchange=@ddlFindNames>
@@ -101,47 +127,55 @@
                     }
                 </td>
             </tr>
+
         </table>
         <br />
         <table style="width:100%;">
             <tr>
-                <td><p><b>Cuotas Pendientes:</b></p></td>
-                <td><input @bind-value="cntbalance" @bind-value:event="oninput" class="form-control" readonly /></td>
+                <td>
+                    <p><b>Cuotas Pendientes:</b></p>
+                    <input @bind-value="cntbalance" @bind-value:event="oninput" class="form-control" readonly />
+                </td>
+                <td>
+                    <p><b>Saldo Pendiente:</b></p>
+                    <input @bind-value="totbalance" @bind-value:event="oninput" class="form-control" readonly />
+                </td>
             </tr>
             <tr>
-                <td><p><b>Saldo Pendiente:</b></p></td>
-                <td><input @bind-value="totbalance" @bind-value:event="oninput" class="form-control" readonly /></td>
+                <td>
+                    <p><b>Efectivo Cobrado:</b></p>
+                    <input @bind-value="totcollectedcash" @bind-value:event="oninput" class="form-control" />
+                </td>
+                <td>
+                    <p><b>Nro. Cheque:</b></p>
+                    <input @bind-value="totcollecteddoc" @bind-value:event="oninput" class="form-control" />
+                </td>
             </tr>
             <tr>
-                <td><p><b>Efectivo Cobrado:</b></p></td>
-                <td><input @bind-value="totcollectedcash" @bind-value:event="oninput" class="form-control" /></td>
+                <td>
+                    <p><b>Importe Cheque:</b></p>
+                    <input @bind-value="totcollectedcheck" @bind-value:event="oninput" class="form-control" />
+                </td>
+                <td>
+                    <p><b>T/C Cobrado:</b></p>
+                    <input @bind-value="totcollectedcard" @bind-value:event="oninput" class="form-control" />
+                </td>
             </tr>
             <tr>
-                <td><p><b>Nro. Cheque:</b></p></td>
-                <td><input @bind-value="totcollecteddoc" @bind-value:event="oninput" class="form-control" /></td>
+                <td>
+                    <p><b>Aut. Tecnica:</b></p>
+                    <input @bind-value="totcollectedauttec" @bind-value:event="oninput" class="form-control" />
+                </td>
+                <td>
+                    <p><b>Observaciones:</b></p>
+                    <input @bind-value="txtobs" @bind-value:event="oninput" class="form-control" />
+                </td>
             </tr>
-            <tr>
-                <td><p><b>Importe Cheque:</b></p></td>
-                <td><input @bind-value="totcollectedcheck" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><p><b>T/C Cobrado:</b></p></td>
-                <td><input @bind-value="totcollectedcard" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><p><b>Aut. Tecnica:</b></p></td>
-                <td><input @bind-value="totcollectedauttec" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><p><b>Observaciones:</b></p></td>
-                <td><input @bind-value="txtobs" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><button class="btn btn-primary" @onclick=@BtnClick>Generar</button></td>
-                <td></td>
-            </tr>
-        </table>
 
+            
+        </table>
+        <br />
+        <button class="btn btn-primary" @onclick=@BtnClick>Generar</button>
     </Authorized>
     <NotAuthorized>
         <h2>Please Login</h2>
