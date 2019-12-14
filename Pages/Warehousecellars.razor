@@ -1,0 +1,288 @@
+﻿@page "/warehousecellars"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+
+        <h3>Movimientos entre Bodegas</h3>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+
+        <table style="width:100%;">
+            
+            <tr>
+                <td><p><b>Cod. Bodega:</b></p></td>
+                <td>
+                    <input @bind-value="codprod" @bind-value:event="oninput" class="form-control" />
+                    <button class="btn btn-primary" @onclick=@BtnFindNames>Buscar</button>
+                    @if (bProduct == true)
+                    {
+                        <select class="custom-select" @onchange=@ddlFindNames>
+                            <option value="-1">Seleccione una opción</option>
+                            @using (var context = new Data.SQLContext())
+                            {
+                                var conn = context.Database.GetDbConnection(); conn.Open();
+                                var command = conn.CreateCommand();
+                                string query = "SELECT id_cellar, txt_cellar FROM cellars WHERE id_branch = " + sIdBranch + " AND (CONVERT(VARCHAR(20),id_cellar) = '" + codprod + "' OR txt_cellar like UPPER('%" + codprod + "%')) ORDER BY txt_cellar";
+                                command.CommandText = query;
+                                var reader = command.ExecuteReader();
+                                while (reader.Read())
+                                {
+                                    <option value="@reader.GetValue("id_cellar").ToString()">@reader.GetValue("txt_cellar").ToString()</option>
+
+                                }
+
+                                conn.Close();
+                            }
+                        </select>
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nombre Bodega:</b></p></td>
+                <td><input @bind-value="nameprod" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+
+
+        </table>
+        <br />
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Activa?:</b></p></td>
+                <td><input type="checkbox" @bind-value="ynactive" checked=@ynactive class="form-control" /></td>
+            </tr>
+
+            <tr>
+                <td><button class="btn btn-primary" @onclick=@BtnClick>Generar</button></td>
+                <td></td>
+            </tr>
+        </table>
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+    [BindProperty]
+    public string id_cellar { get; set; } = "";
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+    [BindProperty]
+    public string codprod { get; set; } = "";
+    [BindProperty]
+    public string nameprod { get; set; } = "";
+    [BindProperty]
+    public string qtyexist { get; set; } = "";
+    [BindProperty]
+    public string idMov { get; set; } = "";
+    [BindProperty]
+    public bool bProduct { get; set; } = false;
+    [BindProperty]
+    public bool bModif { get; set; } = false;
+    [BindProperty]
+    public bool ynactive { get; set; } = false;
+
+    private void cleanscreen()
+    {
+        codprod = "";
+        nameprod = "";
+        qtyexist = "";
+
+        bModif = false;
+
+    }
+
+    private void ddlFindNames(ChangeEventArgs e)
+    {
+        msgBox = "";
+        codprod = e.Value.ToString();
+        bProduct = false;
+        BtnFindIdProd();
+    }
+
+
+    private void BtnFindIdProd()
+    {
+        msgBox = "";
+        bProduct = false;
+        bModif = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *  FROM cellars WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_cellar = " + codprod + "";
+                
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    codprod = reader.GetValue("id_cellar").ToString();
+                    nameprod = reader.GetValue("txt_cellar").ToString();
+                    if (reader.GetValue("yn_active").ToString() == "-1")
+                        ynactive = true;
+                    else
+                        ynactive = false;
+
+                    bModif = true;
+                }
+
+                conn.Close();
+
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+
+    }
+
+
+    private void BtnFindNames()
+    {
+        msgBox = "";
+        bProduct = true;
+        bModif = false;
+    }
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+
+                command = conn.CreateCommand();
+
+                if (bModif)
+                {
+                    query = "UPDATE cellars SET ";
+                    
+                    query = query + "txt_cellar = UPPER('" + nameprod + "')";
+                    if (ynactive)
+                        query = query + ", yn_active = -1";
+                    else
+                        query = query + ", yn_active = 0";
+                    query = query + " WHERE id_branch = 0" + id_branch + "";
+                    query = query + " AND id_cellar = 0" + codprod + "";
+                    command.CommandText = query;
+                    command.ExecuteNonQuery();
+                    
+                    msgBox = "Movimiento guardado correctamente...";
+                }
+                else
+                { 
+                    query = "INSERT INTO cellars SELECT ";
+                    query = query + " 0" + id_branch + "";
+                    query = query + ", 0" + codprod + "";
+                    query = query + ", UPPER('" + nameprod + "')";
+                    if (ynactive)
+                        query = query + ", -1";
+                    else
+                        query = query + ", 0";
+
+                    command.CommandText = query;
+                    command.ExecuteNonQuery();
+                    
+                    msgBox = "Movimiento guardado correctamente...";
+                }
+
+
+
+
+                conn.Close();
+                cleanscreen();
+                NavigationManager.NavigateTo("/warehousecellars");
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
+}
+
