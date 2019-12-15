@@ -1,0 +1,128 @@
+﻿@page "/cashierreport"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+    @inject IJSRuntime jsRuntime
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdCollector = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT id_coworker FROM coworkers_catalog  WHERE txt_email = '" + oUser + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdCollector = reader.GetValue("id_coworker").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <div class="row">
+            <div style="width:100%; text-align:right;">
+                <button class="btn btn-primary" @onclick="printRep">Imprimir</button>
+                <button class="btn btn-primary" @onclick="exportRep">Exportar</button>
+            </div>
+        </div>
+
+
+        <div id="AreaImpresion">
+            <h3>Reporte Arqueo de Caja</h3>
+            <h6>@DateTime.Now <br /> @oUser</h6>
+
+            <hr />
+            <label style="color:darkred;">@msgBox</label>
+
+            <table style="width:100%;">
+                <tr>
+                    <td><p><b>Efectivo</b></p></td>
+                    <td><p><b>Cheque</b></p></td>
+                    <td><p><b>Tarjeta</b></p></td>
+                    <td><p><b>Total</b></p></td>
+                    
+                </tr>
+                @using (var context = new Data.SQLContext())
+                {
+                    var conn = context.Database.GetDbConnection(); conn.Open();
+                    var command = conn.CreateCommand();
+                    string query = "SELECT SUM(t1.imp_payment_cash) impcash, SUM(t1.imp_payment_check) impcheck, SUM(t1.imp_payment_card) impcard, SUM(t1.imp_payment_cash + t1.imp_payment_check + t1.imp_payment_card) imptot FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage WHERE t1.id_branch = " + sIdBranch + " AND t1.creation_user = '" + oUser + "' AND (t1.yn_payed = -1 AND t1.yn_cancel = 0 AND t1.yn_cashier = -1) AND CONVERT(VARCHAR(10),t1.creation_date,112) = CONVERT(VARCHAR(10),getdate(),112)";
+
+                    command.CommandText = query;
+                    var reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        <tr>
+                            <td><p>@reader.GetValue("impcash").ToString()</p></td>
+                            <td><p>@reader.GetValue("impcheck").ToString() </p></td>
+                            <td><p>@reader.GetValue("impcard").ToString() </p></td>
+                            <td><p>@reader.GetValue("imptot").ToString()</p></td>
+                            
+                        </tr>
+                    }
+
+                    conn.Close();
+                }
+
+            </table>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+
+
+    private void printRep()
+    {
+        //jsRuntime.InvokeAsync<bool>("ShowAlert","Edgar");
+        jsRuntime.InvokeAsync<bool>("imprimir");
+
+    }
+
+    private void exportRep()
+    {
+        jsRuntime.InvokeAsync<bool>("downloadCSV");
+
+    }
+
+}
+

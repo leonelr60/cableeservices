@@ -49,6 +49,14 @@
 }
 <AuthorizeView>
     <Authorized>
+        <div style="width:100%; text-align:right;">
+            <NavLink class="nav-link" href="cashierreport">
+                <span class="oi oi-print" aria-hidden="true"></span> Arqueo
+            </NavLink>
+            <NavLink class="nav-link" href="cashierdeposit">
+                <span class="oi oi-print" aria-hidden="true"></span> Cierre
+            </NavLink>
+        </div>
         <h3>Caja</h3>
         <hr />
         <label style="color:darkred;">@msgBox</label>
@@ -67,8 +75,8 @@
                             </td>
                         </tr>
                     </table>
-                    
-                    
+
+
                 </td>
                 <td>
                     <p><b>Nro. Contrato físico:</b></p>
@@ -82,7 +90,7 @@
                             </td>
                         </tr>
                     </table>
-                    
+
                 </td>
             </tr>
             <tr>
@@ -102,8 +110,8 @@
                             </td>
                         </tr>
                     </table>
-                    
-                    
+
+
                     @if (bNames == true)
                     {
                         <select class="custom-select" @onchange=@ddlFindNames>
@@ -172,7 +180,7 @@
                 </td>
             </tr>
 
-            
+
         </table>
         <br />
         <button class="btn btn-primary" @onclick=@BtnClick>Generar</button>

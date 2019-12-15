@@ -1,4 +1,4 @@
-﻿@page "/collectiondeposit"
+﻿@page "/cashierdeposit"
 @{
     @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
     @inject Data.ApplicationDbContext _appContext
@@ -73,11 +73,11 @@
 
 
         <div id="AreaImpresion">
-            <h3>Cierre Diario de Cobros</h3>
+            <h3>Cierre Diario de Caja</h3>
             <h6>@DateTime.Now <br /> @oUser</h6>
 
             <hr />
-            
+
             <h4>Pendientes</h4>
             <table style="width:100%;">
                 <tr>
@@ -91,7 +91,7 @@
                 {
                     var conn = context.Database.GetDbConnection(); conn.Open();
                     var command = conn.CreateCommand();
-                    string query = "SELECT id_contract, id_zip_coverage, id_client, last_name + ' ' + first_name txt_ccustomer, billing_name, collect_address, txt_counter, txt_pole, ym_collect, imp_collect, ein_number  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = -1 AND yn_cancel = 0 AND yn_cashier = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) NOT IN (SELECT CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect) FROM hist_collect_applications WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND ym_collect = " + lastprocess + " AND id_contract = hist_collections.id_contract)";
+                    string query = "SELECT id_contract, id_zip_coverage, id_client, last_name + ' ' + first_name txt_ccustomer, billing_name, collect_address, txt_counter, txt_pole, ym_collect, imp_collect, ein_number  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND creation_user = '" + oUser + "' AND (yn_payed = -1 AND yn_cancel = 0 AND yn_cashier = -1) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) NOT IN (SELECT CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect) FROM hist_collect_applications WHERE id_branch = " + sIdBranch + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND ym_collect = " + lastprocess + " AND id_contract = hist_collections.id_contract)";
 
                     command.CommandText = query;
                     var reader = command.ExecuteReader();
@@ -125,7 +125,7 @@
                 {
                     var conn = context.Database.GetDbConnection(); conn.Open();
                     var command = conn.CreateCommand();
-                    string query = "SELECT id_contract, id_client, last_name + ' ' + first_name txt_ccustomer, ym_collect, imp_applic  FROM hist_collect_applications WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND ym_collect = " + lastprocess + " AND yn_closed = 0 AND yn_audit = 0 and yn_cancel = 0";
+                    string query = "SELECT id_contract, id_client, last_name + ' ' + first_name txt_ccustomer, ym_collect, imp_applic  FROM hist_collect_applications WHERE id_branch = " + sIdBranch + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND ym_collect = " + lastprocess + " AND yn_closed = 0 AND yn_audit = 0 and yn_cancel = 0";
                     totbalance = 0.00;
                     command.CommandText = query;
                     var reader = command.ExecuteReader();
@@ -153,51 +153,51 @@
                 </tr>
             </table>
         </div>
-            <hr />
-            <h4>Datos del Depósito Bancario</h4>
-            <table style="width:100%;">
-                <tr>
-                    <td><p><b>Banco:</b></p></td>
-                    <td>
-                        <select class="custom-select" @bind="idbank">
-                            <option value="-1">Seleccione una opción</option>
-                            @using (var context = new Data.SQLContext())
+        <hr />
+        <h4>Datos del Depósito Bancario</h4>
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Banco:</b></p></td>
+                <td>
+                    <select class="custom-select" @bind="idbank">
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+
+                            var conn = context.Database.GetDbConnection();
+                            conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT * FROM banks_catalog WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY txt_bank";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+
+                            while (reader.Read())
                             {
+                                <option value="@reader.GetValue("id_bank").ToString()">@reader.GetValue("txt_bank").ToString()</option>
 
-                                var conn = context.Database.GetDbConnection();
-                                conn.Open();
-                                var command = conn.CreateCommand();
-                                string query = "SELECT * FROM banks_catalog WHERE yn_active = -1 AND id_branch = " + sIdBranch + " ORDER BY txt_bank";
-                                command.CommandText = query;
-                                var reader = command.ExecuteReader();
-
-                                while (reader.Read())
-                                {
-                                    <option value="@reader.GetValue("id_bank").ToString()">@reader.GetValue("txt_bank").ToString()</option>
-
-                                }
-
-                                conn.Close();
                             }
-                        </select>
 
-                    </td>
-                </tr>
-                <tr>
-                    <td><p><b>Nro. Boleta:</b></p></td>
-                    <td>
-                        <input @bind-value="nroboldep" @bind-value:event="oninput" class="form-control" />
-                    </td>
-                </tr>
-                <tr>
-                    <td><p><b>Importe Boleta:</b></p></td>
-                    <td>
-                        <input @bind-value="impboldep" @bind-value:event="oninput" class="form-control" />
-                    </td>
-                </tr>
-                
-            </table>
-        
+                            conn.Close();
+                        }
+                    </select>
+
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Nro. Boleta:</b></p></td>
+                <td>
+                    <input @bind-value="nroboldep" @bind-value:event="oninput" class="form-control" />
+                </td>
+            </tr>
+            <tr>
+                <td><p><b>Importe Boleta:</b></p></td>
+                <td>
+                    <input @bind-value="impboldep" @bind-value:event="oninput" class="form-control" />
+                </td>
+            </tr>
+
+        </table>
+
         <button class="btn btn-primary" @onclick=@BtnClick>Depositar</button>
     </Authorized>
     <NotAuthorized>
@@ -292,7 +292,7 @@
             }
             command = conn.CreateCommand();
             query = "INSERT INTO hist_collect_applications ";
-            query = query + " SELECT id_branch, id_contract, ym_collect, id_client, first_name, last_name, id_collector, imp_payment_cash + imp_payment_check + imp_payment_card + imp_payment_others, '' id_bank, 0, 0, 0, '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null, getdate(), null  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = -1 AND yn_cancel = 0 AND yn_cashier = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
+            query = query + " SELECT id_branch, id_contract, ym_collect, id_client, first_name, last_name, id_collector, imp_payment_cash + imp_payment_check + imp_payment_card + imp_payment_others, '' id_bank, 0, 0, 0, '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null, getdate(), null  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND (yn_payed = -1 AND yn_cancel = 0 AND yn_cashier = -1) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
 
             command.CommandText = query;
             command.ExecuteNonQuery();
@@ -339,7 +339,7 @@
             }
             command = conn.CreateCommand();
             query = "DELETE FROM hist_collect_applications ";
-            query = query + " WHERE creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_cancel = 0 AND yn_audit = 0 AND yn_closed = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
+            query = query + " WHERE creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND id_branch = " + sIdBranch + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND (yn_cancel = 0 AND yn_audit = 0 AND yn_closed = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
 
             command.CommandText = query;
             command.ExecuteNonQuery();
@@ -380,7 +380,7 @@
         collectyearmonth = "";
     }
 
-    
+
     private void BtnClick()
     {
         double dTot = 0.00;
@@ -413,35 +413,35 @@
 
                     query = "SELECT * FROM hist_collect_applications ";
                     query = query + " WHERE yn_audit = 0 AND yn_cancel = 0 AND yn_closed = 0 AND id_branch = " + id_branch + " AND  creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
-                    
+
                     command.CommandText = query;
                     reader = command.ExecuteReader();
                     while (reader.Read())
                     {
-                        
+
                         double dImp = Double.Parse(reader.GetValue("imp_applic").ToString());
-                        
 
-                                var command2 = conn.CreateCommand();
 
-                                query = "UPDATE hist_collections SET  ";
-                                query = query + " txt_bank_deposit_doc = UPPER('" + nroboldep + "')";
-                                query = query + ", imp_bank_deposit = 0" + dImp + ""; 
-                                query = query + " WHERE id_branch = " + reader.GetValue("id_branch").ToString() + " AND  id_contract = ";
-                                query = query + reader.GetValue("id_contract").ToString() + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
-                                command2.CommandText = query;
-                                command2.ExecuteNonQuery();
-                                command2 = conn.CreateCommand();
+                        var command2 = conn.CreateCommand();
 
-                                query = "UPDATE hist_collect_applications SET  ";
-                                query = query + " yn_closed = -1, date_applic = getdate()";
-                                query = query + ", id_bank = '" + idbank + "'";
-                                query = query + " WHERE id_branch = " + reader.GetValue("id_branch").ToString() + " AND  id_contract = ";
-                                query = query + reader.GetValue("id_contract").ToString() + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
-                                command2.CommandText = query;
-                                command2.ExecuteNonQuery();
-                            
-                        }
+                        query = "UPDATE hist_collections SET  ";
+                        query = query + " txt_bank_deposit_doc = UPPER('" + nroboldep + "')";
+                        query = query + ", imp_bank_deposit = 0" + dImp + "";
+                        query = query + " WHERE id_branch = " + reader.GetValue("id_branch").ToString() + " AND  id_contract = ";
+                        query = query + reader.GetValue("id_contract").ToString() + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                        command2.CommandText = query;
+                        command2.ExecuteNonQuery();
+                        command2 = conn.CreateCommand();
+
+                        query = "UPDATE hist_collect_applications SET  ";
+                        query = query + " yn_closed = -1, date_applic = getdate()";
+                        query = query + ", id_bank = '" + idbank + "'";
+                        query = query + " WHERE id_branch = " + reader.GetValue("id_branch").ToString() + " AND  id_contract = ";
+                        query = query + reader.GetValue("id_contract").ToString() + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                        command2.CommandText = query;
+                        command2.ExecuteNonQuery();
+
+                    }
 
 
                 }
