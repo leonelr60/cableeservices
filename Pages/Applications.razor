@@ -1,0 +1,395 @@
+﻿@page "/applications"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+    @inject IJSRuntime jsRuntime
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdCollector = "";
+    //string[] aSelectedItems;
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+
+            query = "SELECT MAX(ym_process) rvalue FROM lastprocesscollections  WHERE id_branch = " + sIdBranch + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                lastprocess = reader.GetValue("rvalue").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT id_coworker FROM coworkers_catalog  WHERE txt_email = '" + oUser + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdCollector = reader.GetValue("id_coworker").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <h3>Aplicaciones</h3>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+        <div class="row">
+            <div style="width:100%; text-align:right;">
+                <button class="btn btn-primary" @onclick="printRep">Imprimir</button>
+                <button class="btn btn-primary" @onclick="exportRep">Exportar</button>
+            </div>
+        </div>
+
+
+        <div id="AreaImpresion">
+            <h3>Aplicaciones de Cobros</h3>
+            <h6>@DateTime.Now <br /> @oUser</h6>
+
+            <hr />
+
+            <h4>Pendientes</h4>
+            <table style="width:100%;">
+                <tr>
+                    <td></td>
+                    <td><p><b>Fecha</b></p></td>
+                    <td><p><b>Contrato Int.</b></p></td>
+                    <td><p><b>Corte</b></p></td>
+                    <td><p><b>Nombre</b></p></td>
+                    <td><p><b>Usuario</b></p></td>
+                    <td><p><b>Aplicado</b></p></td>
+                    <td><p><b>Banco</b></p></td>
+                    <td><p><b>Boleta</b></p></td>
+                    <td><p><b>Importe Boleta</b></p></td>
+                </tr>
+                @using (var context = new Data.SQLContext())
+                {
+                    var conn = context.Database.GetDbConnection(); conn.Open();
+                    var command = conn.CreateCommand();
+                    string query = "SELECT t1.date_creation, t1.id_contract, t1.ym_collect, t1.first_name, t1.last_name, t1.creation_user, t1.imp_applic, b.txt_bank, t2.txt_bank_deposit_doc, t2.imp_bank_deposit";
+                    query = query + " FROM hist_collect_applications t1";
+                    query = query + " INNER JOIN hist_collections t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract AND t1.ym_collect = t2.ym_collect";
+                    query = query + " INNER JOIN banks_catalog b ON b.id_branch = t1.id_branch AND b.id_bank = t1.id_bank";
+                    query = query + " WHERE t1.id_branch = "+sIdBranch+" AND t1.yn_closed = -1 AND t1.yn_cancel = 0 AND t1.yn_audit = 0";
+                    command.CommandText = query;
+                    var reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var sID = reader.GetValue("id_contract").ToString() + "-" + reader.GetValue("ym_collect").ToString();
+            <tr>
+                <td><button class="btn btn-primary" @onclick="@(e => selectItem(@sID))">&#10004;</button></td>
+                <td><p>@reader.GetValue("date_creation").ToString()</p></td>
+                <td><p>@reader.GetValue("id_contract").ToString()</p></td>
+                <td><p>@reader.GetValue("ym_collect").ToString()</p></td>
+                <td><p>@reader.GetValue("last_name").ToString() @reader.GetValue("first_name").ToString()</p></td>
+                <td><p>@reader.GetValue("creation_user").ToString()</p></td>
+                <td><p>@reader.GetValue("imp_applic").ToString()</p></td>
+                <td><p>@reader.GetValue("txt_bank").ToString()</p></td>
+                <td><p>@reader.GetValue("txt_bank_deposit_doc").ToString()</p></td>
+                <td><p>@reader.GetValue("imp_bank_deposit").ToString()</p></td>
+            </tr>
+                    }
+
+                    conn.Close();
+                }
+
+            </table>
+            
+        </div>
+        
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
+
+    [BindProperty]
+    public bool bNames { get; set; } = false;
+
+    [BindProperty]
+    public string idbank { get; set; } = "";
+
+    [BindProperty]
+    public string nroboldep { get; set; } = "";
+
+    [BindProperty]
+    public string impboldep { get; set; } = "";
+
+    [BindProperty]
+    public string idcontract { get; set; } = "";
+    [BindProperty]
+    public string contractnum { get; set; } = "";
+    [BindProperty]
+    public string idclient { get; set; } = "";
+    [BindProperty]
+    public string firstname { get; set; } = "";
+    [BindProperty]
+    public string lastname { get; set; } = "";
+    [BindProperty]
+    public double totbalance { get; set; } = 0.00;
+    [BindProperty]
+    public int cntbalance { get; set; } = 0;
+    [BindProperty]
+    public string totcollectedcash { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcheck { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcard { get; set; } = "";
+    [BindProperty]
+    public string totcollecteddoc { get; set; } = "";
+    [BindProperty]
+    public string totcollectedauttec { get; set; } = "";
+    [BindProperty]
+    public string collectyearmonth { get; set; } = "";
+
+    private void selectItem(string sVal)
+    {
+        string sIdBranch = "";
+        string sIdCollector = "";
+        @using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection(); conn.Open();
+            var command = conn.CreateCommand();
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+
+            query = "SELECT MAX(ym_process) rvalue FROM lastprocesscollections  WHERE id_branch = " + sIdBranch + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                lastprocess = reader.GetValue("rvalue").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT id_coworker FROM coworkers_catalog  WHERE txt_email = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdCollector = reader.GetValue("id_coworker").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "UPDATE hist_collect_applications SET yn_audit = -1, date_applic = getdate(), modif_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+            query = query + " WHERE id_branch = " + sIdBranch + " AND (yn_cancel = 0 AND yn_audit = 0 AND yn_closed = -1) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
+            command.CommandText = query;
+            command.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+    }
+
+    private void deselectItem(string sVal)
+    {
+        string sIdBranch = "";
+        string sIdCollector = "";
+        @using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection(); conn.Open();
+            var command = conn.CreateCommand();
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+
+            query = "SELECT MAX(ym_process) rvalue FROM lastprocesscollections  WHERE id_branch = " + sIdBranch + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                lastprocess = reader.GetValue("rvalue").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT id_coworker FROM coworkers_catalog  WHERE txt_email = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdCollector = reader.GetValue("id_coworker").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "DELETE FROM hist_collect_applications ";
+            query = query + " WHERE creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND id_branch = " + sIdBranch + " AND creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' AND (yn_cancel = 0 AND yn_audit = 0 AND yn_closed = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
+
+            command.CommandText = query;
+            command.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+    }
+
+    private void printRep()
+    {
+        //jsRuntime.InvokeAsync<bool>("ShowAlert","Edgar");
+        jsRuntime.InvokeAsync<bool>("imprimir");
+
+    }
+
+    private void exportRep()
+    {
+        jsRuntime.InvokeAsync<bool>("downloadCSV");
+
+    }
+
+    private void cleanscreen()
+    {
+        bNames = false;
+        idcontract = "";
+        contractnum = "";
+        idclient = "";
+        firstname = "";
+        lastname = "";
+        totbalance = 0.00;
+        cntbalance = 0;
+        totcollectedcash = "";
+        totcollectedcheck = "";
+        totcollectedcard = "";
+        totcollecteddoc = "";
+        totcollectedauttec = "";
+        collectyearmonth = "";
+    }
+
+
+    private void BtnClick()
+    {
+        double dTot = 0.00;
+        if (totcollectedcash.Length == 0)
+            totcollectedcash = "0";
+        if (totcollectedcheck.Length == 0)
+            totcollectedcheck = "0";
+        if (totcollectedcard.Length == 0)
+            totcollectedcard = "0";
+        dTot = double.Parse(totcollectedcash) + double.Parse(totcollectedcheck) + double.Parse(totcollectedcard);
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                if (totbalance > 0)
+                {
+                    command = conn.CreateCommand();
+
+                    query = "SELECT * FROM hist_collect_applications ";
+                    query = query + " WHERE yn_audit = 0 AND yn_cancel = 0 AND yn_closed = 0 AND id_branch = " + id_branch + " AND  creation_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+
+                    command.CommandText = query;
+                    reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+
+                        double dImp = Double.Parse(reader.GetValue("imp_applic").ToString());
+
+
+                        var command2 = conn.CreateCommand();
+
+                        query = "UPDATE hist_collections SET  ";
+                        query = query + " txt_bank_deposit_doc = UPPER('" + nroboldep + "')";
+                        query = query + ", imp_bank_deposit = 0" + dImp + "";
+                        query = query + " WHERE id_branch = " + reader.GetValue("id_branch").ToString() + " AND  id_contract = ";
+                        query = query + reader.GetValue("id_contract").ToString() + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                        command2.CommandText = query;
+                        command2.ExecuteNonQuery();
+                        command2 = conn.CreateCommand();
+
+                        query = "UPDATE hist_collect_applications SET  ";
+                        query = query + " yn_closed = -1, date_applic = getdate()";
+                        query = query + ", id_bank = '" + idbank + "'";
+                        query = query + " WHERE id_branch = " + reader.GetValue("id_branch").ToString() + " AND  id_contract = ";
+                        query = query + reader.GetValue("id_contract").ToString() + " AND ym_collect = " + reader.GetValue("ym_collect").ToString();
+                        command2.CommandText = query;
+                        command2.ExecuteNonQuery();
+
+                    }
+
+
+                }
+
+                conn.Close();
+                cleanscreen();
+                NavigationManager.NavigateTo("/applications");
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
+}
+
