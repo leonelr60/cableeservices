@@ -581,7 +581,7 @@
                 query = query + ", getdate() ";
                 query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
                 query = query + ", '" + txtref + "'";
-                query = query + ", '" + txtproblema + "', null, null";
+                query = query + ", '" + txtproblema + "', null, null, null, null";
                 command.CommandText = query;
                 command.ExecuteNonQuery();
                     msgBox = "OT " + sCorrela.ToString() + " creada correctamente...";

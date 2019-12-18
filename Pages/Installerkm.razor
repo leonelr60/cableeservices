@@ -1,0 +1,201 @@
+﻿@page "/installerkm"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdTec = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT cc.id_coworker FROM coworkers_catalog cc INNER JOIN installers i ON i.id_branch = cc.id_branch and i.id_coworker = cc.id_coworker  WHERE cc.txt_email = '" + oUser + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdTec = reader.GetValue("id_coworker").ToString();
+            }
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <h3>Kilometraje</h3>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+
+        <table style="width:100%;">
+            <tr>
+                <td><p><b>Fecha:</b></p></td>
+                <td><input type="date" @bind-value="dategas" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>KM Inicial:</b></p></td>
+                <td><input type="number" @bind-value="kminitial" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>KM Final:</b></p></td>
+                <td><input type="number" @bind-value="kmend" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Observaciones:</b></p></td>
+                <td><input @bind-value="txtobs_ins" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><button class="btn btn-primary" @onclick=@BtnClick>Generar</button></td>
+                <td></td>
+            </tr>
+        </table>
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
+
+    [BindProperty]
+    public DateTime dategas { get; set; } = DateTime.Today;
+
+    [BindProperty]
+    public string kminitial { get; set; } = "";
+    [BindProperty]
+    public string kmend { get; set; } = "";
+    [BindProperty]
+    public string txtobs_ins { get; set; } = "";
+    [BindProperty]
+    public string idtec { get; set; } = "";
+
+    private void cleanscreen()
+    {
+
+        idtec = "";
+        kminitial = "";
+        kmend = "";
+        txtobs_ins = "";
+
+    }
+
+
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+                query = "SELECT cc.id_coworker FROM coworkers_catalog cc INNER JOIN installers i ON i.id_branch = cc.id_branch and i.id_coworker = cc.id_coworker  WHERE cc.txt_email = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    idtec = reader.GetValue("id_coworker").ToString();
+                }
+                command = conn.CreateCommand();
+                bool bClosed = false;
+                query = "SELECT 1 FROM hist_technicalgas  WHERE id_branch = " + id_branch + " AND id_tec = " + idtec + " AND date_gas = '" + dategas.ToString("yyyyMMdd") + "'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if(reader.HasRows)
+                {
+                    bClosed = true;
+                }
+                
+                if (bClosed == false)
+                {
+                    command = conn.CreateCommand();
+                    query = "INSERT INTO hist_technicalgas SELECT ";
+                    query = query + " " + id_branch + "";
+                    query = query + ", " + idtec + "";
+                    query = query + ", getdate()";
+                    query = query + ", '" + dategas.ToString("yyyyMMdd") + "'";
+                    query = query + ", '" + txtobs_ins + "'";
+                    query = query + ", " + kminitial.ToString() + "";
+                    query = query + ", " + kmend.ToString() + "";
+                    command.CommandText = query;
+                    command.ExecuteNonQuery();
+
+                }
+                else
+                {
+                    msgBox = "Ya se ha cerrado el dia...";
+                }
+
+
+
+
+                conn.Close();
+                cleanscreen();
+                NavigationManager.NavigateTo("/installers");
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
+}
+

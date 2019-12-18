@@ -47,6 +47,9 @@
             <NavLink class="nav-link" href="installerinv">
                 <span class="oi oi-document" aria-hidden="true"></span> Inventario
             </NavLink>
+            <NavLink class="nav-link" href="installerkm">
+                <span class="oi oi-document" aria-hidden="true"></span> Kilometraje
+            </NavLink>
         </div>
         <h3>Órdenes Técnicas</h3>
         <hr />
@@ -228,6 +231,14 @@
                 </td>
             </tr>
             <tr>
+                <td><p><b>Hora de Inicio:</b></p></td>
+                <td><input type="time" @bind-value="timestart" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Hora de Finalización:</b></p></td>
+                <td><input type="time" @bind-value="timestop" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
                 <td><p><b>Observaciones:</b></p></td>
                 <td><input @bind-value="txtobs_ins" @bind-value:event="oninput" class="form-control" /></td>
             </tr>
@@ -305,6 +316,10 @@
             public string totcollectedauttec { get; set; } = "";
             [BindProperty]
             public string collectyearmonth { get; set; } = "";
+            [BindProperty]
+            public string timestart { get; set; } 
+            [BindProperty]
+            public string timestop { get; set; } 
 
             private void cleanscreen()
             {
@@ -356,7 +371,7 @@
                         query = query + " id_branch = " + id_branch + "";
                         query = query + " AND id_contract = " + idcontract + "";
                         command.CommandText = query;
-                        var reader = command.ExecuteReader();
+                        var reader = command.ExecuteReader();   
 
                         if (!reader.HasRows)
                             msgBox = "El cliente no tiene saldo pendiente...";
@@ -511,9 +526,9 @@
                         }
                         command = conn.CreateCommand();
 
-                        query = "SELECT t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name FROM hist_technicalorders t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
+                        query = "SELECT t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name, ISNULL(REPLACE(CONVERT(VARCHAR(20),t1.time_start,108),'.','-'),'00:01 AM') otstart, ISNULL(REPLACE(CONVERT(VARCHAR(20),t1.time_stop,108),'.','-'),'00:01 AM') otstop FROM hist_technicalorders t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
                         query = query + " t1.id_branch = " + id_branch + "";
-                        query = query + " AND t1.id_to_correla = " + idtechnicalorder + "";
+                        query = query + " AND t1.id_to_correla = " + idtechnicalorder + " AND t1.id_status NOT IN (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND (yn_closews = -1 OR yn_closewos = -1))";
                         command.CommandText = query;
                         reader = command.ExecuteReader();
 
@@ -534,10 +549,13 @@
                             txtref = reader.GetValue("txt_ref").ToString();
                             txtproblema = reader.GetValue("txt_problem").ToString();
                             dateorder = DateTime.Parse(reader.GetValue("dateorder").ToString());
+                            timestart = reader.GetValue("otstart").ToString();
+                            timestop =reader.GetValue("otstop").ToString();
                         }
 
                         conn.Close();
-                        FindBalance();
+                        if (idcontract.Length > 0)
+                            FindBalance();
                     }
                     catch (Exception ex)
                     {
@@ -578,9 +596,11 @@
                         if (realidtechnicalorder.Length > 0)
                         {
                             query = "UPDATE hist_technicalorders SET ";
-                            query = query + " id_status = " + newidstatusorder + "";
+                            query = query + " id_status = 0" + newidstatusorder + "";
                             query = query + ", date_modif = getdate() ";
                             query = query + ", txt_tech_obs = '" + txtobs_ins + "'";
+                            query = query + ", time_start = '" + timestart.ToString() + "'";
+                            query = query + ", time_stop = '" + timestop.ToString() + "'";
                             query = query + " WHERE id_to_correla = " + realidtechnicalorder;
                             query = query + " AND id_branch = " + id_branch + "";
                             query = query + " AND id_contract = " + idcontract + "";
