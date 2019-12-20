@@ -2,6 +2,16 @@
     alert(message);
 }
 
+function myValue(oObject) {
+    return document.getElementById(oObject).value;
+}
+
+function insTableReps(sTable) {
+    var oDiv = document.getElementById('divTable');
+    oDiv.innerHTML = sTable;
+    
+}
+
 function imprimir() {
 
 
@@ -18,7 +28,8 @@ function imprimir() {
 function downloadCSV() {
     var filename = "repdownload.csv";
     var csv = [];
-    var rows = document.querySelectorAll("table tr");
+    var objeto = document.getElementById('AreaImpresion');
+    var rows = objeto.querySelectorAll("table tr");
 
     for (var i = 0; i < rows.length; i++) {
         var row = [], cols = rows[i].querySelectorAll("td, th");

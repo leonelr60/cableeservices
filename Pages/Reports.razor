@@ -1,0 +1,819 @@
+﻿@page "/reports"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+    @inject IJSRuntime jsRuntime
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdCollector = "";
+    int iParams = 0;
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT id_coworker FROM coworkers_catalog  WHERE txt_email = '" + oUser + "'";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdCollector = reader.GetValue("id_coworker").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        
+        <table style="width:100%;">
+            <tr>
+                <td style="width:50%;">
+                    <label>Modulo</label>
+                    <select id="ddlModule" name="ddlModule" class="custom-select" @onchange=@ddlModuleChanges>
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+                            var conn = context.Database.GetDbConnection(); conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT id_report, txt_reporte FROM reports WHERE id_report in ( SELECT id_report FROM user_option_report WHERE id_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' ) ORDER BY txt_reporte";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+                            while (reader.Read())
+                            {
+                                <option value="@reader.GetValue("id_report").ToString()">@reader.GetValue("txt_reporte").ToString()</option>
+
+                            }
+
+                            conn.Close();
+                            iParams = 0;
+                        }
+                    </select>
+                </td>
+                <td style="width:50%;">
+                    <label>SubModulo</label>
+                    <select id="ddlSubModule" name="ddlSubModule" class="custom-select" @onchange=@ddlSubModuleChanges>
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+                            var conn = context.Database.GetDbConnection(); conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT id_subreport, txt_subreport FROM subreports WHERE id_report = 0" + @sTitleId + " AND CONVERT(VARCHAR(38),id_report) + '-' + CONVERT(VARCHAR(38),id_subreport) in ( SELECT CONVERT(VARCHAR(38),id_report) + '-' + CONVERT(VARCHAR(38),id_subreport) FROM user_option_report WHERE id_report = 0" + @sTitleId + " AND id_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' ) ORDER BY txt_subreport";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+                            while (reader.Read())
+                            {
+                                <option value="@reader.GetValue("id_subreport").ToString()">@reader.GetValue("txt_subreport").ToString()</option>
+
+                            }
+
+                            conn.Close();
+                            iParams = 0;
+                        }
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td style="width:50%;">
+                    <label>Reporte</label>
+                    <select id="ddlReport" name="ddlReport" class="custom-select" @onchange=@ddlReportChanges>
+                        <option value="-1">Seleccione una opción</option>
+                        @using (var context = new Data.SQLContext())
+                        {
+                            var conn = context.Database.GetDbConnection(); conn.Open();
+                            var command = conn.CreateCommand();
+                            string query = "SELECT id_option, txt_option FROM option_report WHERE id_report = 0" + @sTitleId + " AND id_subreport = 0" + @sSubTitleId + " AND CONVERT(VARCHAR(38),id_report) + '-' + CONVERT(VARCHAR(38),id_subreport) + '-' + CONVERT(VARCHAR(38),id_option) in ( SELECT CONVERT(VARCHAR(38),id_report) + '-' + CONVERT(VARCHAR(38),id_subreport) + '-' + CONVERT(VARCHAR(38),id_option) FROM user_option_report WHERE id_report = 0" + @sTitleId + " AND id_subreport = 0" + @sSubTitleId + " AND id_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' ) ORDER BY txt_option";
+                            command.CommandText = query;
+                            var reader = command.ExecuteReader();
+                            while (reader.Read())
+                            {
+                                <option value="@reader.GetValue("id_option").ToString()">@reader.GetValue("txt_option").ToString()</option>
+
+                            }
+
+                            conn.Close();
+                            iParams = 0;
+                        }
+                    </select>
+                </td>
+                <td style="width:50%;">
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table>
+            @using (var context = new Data.SQLContext())
+            {
+                var conn = context.Database.GetDbConnection(); conn.Open();
+                var command = conn.CreateCommand();
+                string query = "SELECT id_parameter, txt_desc_param, type_parameter FROM parameters_report WHERE id_report = 0" + @sTitleId + " AND id_subreport = 0" + @sSubTitleId + " AND id_option = 0" + @sReportId + " AND CONVERT(VARCHAR(38),id_report) + '-' + CONVERT(VARCHAR(38),id_subreport) + '-' + CONVERT(VARCHAR(38),id_option) in ( SELECT CONVERT(VARCHAR(38),id_report) + '-' + CONVERT(VARCHAR(38),id_subreport) + '-' + CONVERT(VARCHAR(38),id_option) FROM user_option_report WHERE id_report = 0" + @sTitleId + " AND id_subreport = 0" + @sSubTitleId + " AND id_option = 0" + @sReportId + " AND id_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "' ) ORDER BY id_parameter";
+                command.CommandText = query;
+                bool bDate = false;
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    iParams = iParams + 1;
+                    <tr>
+                        <td style="width:50%;">
+                            <label>@reader.GetValue("id_parameter").ToString(). @reader.GetValue("txt_desc_param").ToString()</label>
+                        </td>
+                        <td style="width:50%;">
+                            @if (@reader.GetValue("type_parameter").ToString() == "USER")
+                            {
+                                string sPName = "iParam" + @reader.GetValue("id_parameter").ToString();
+                                if (iParams == 1)
+                                {
+                                    iParam1 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam1" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 2)
+                                {
+                                    iParam2 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam2" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 3)
+                                {
+                                    iParam3 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam3" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 4)
+                                {
+                                    iParam4 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam4" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 5)
+                                {
+                                    iParam5 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam5" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 6)
+                                {
+                                    iParam6 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam6" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 7)
+                                {
+                                    iParam7 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam7" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 8)
+                                {
+                                    iParam8 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam8" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 9)
+                                {
+                                    iParam9 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam9" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 10)
+                                {
+                                    iParam10 = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam10" @bind-value:event="oninput" />
+                                }
+                            }
+                            @if (@reader.GetValue("type_parameter").ToString() == "DATE")
+                            {
+                                string sPName = "iParam" + @reader.GetValue("id_parameter").ToString();
+                                if (iParams == 1)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 2)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 3)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 4)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 5)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 6)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 7)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 8)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 9)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                if (iParams == 10)
+                                {
+                                    if (bDate)
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam2" @bind-value:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-control" id="@sPName" name="@sPName" type="date" @bind-value="iDParam1" @bind-value:event="oninput" />
+                                    }
+
+                                    bDate = true;
+                                }
+                                //value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                            }
+                            @if (@reader.GetValue("type_parameter").ToString() == "TEXT")
+                            {
+                                string sPName = "iParam" + @reader.GetValue("id_parameter").ToString();
+                                if (iParams == 1)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam1" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 2)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam2" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 3)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam3" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 4)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam4" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 5)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam5" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 6)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam6" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 7)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam7" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 8)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam8" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 9)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam9" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 10)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" @bind-value="iParam10" @bind-value:event="oninput" />
+                                }
+                            }
+                            @if (@reader.GetValue("type_parameter").ToString() == "NUMBER")
+                            {
+                                string sPName = "iParam" + @reader.GetValue("id_parameter").ToString();
+                                if (iParams == 1)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam1" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 2)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam2" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 3)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam3" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 4)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam4" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 5)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam5" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 6)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam6" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 7)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam7" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 8)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam8" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 9)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam9" @bind-value:event="oninput" />
+                                }
+                                if (iParams == 10)
+                                {
+                                    <input class="form-control" id="@sPName" name="@sPName" type="number" @bind-value="iParam10" @bind-value:event="oninput" />
+                                }
+                            }
+                        </td>
+                    </tr>
+
+
+                }
+
+                conn.Close();
+            }
+            <tr>
+                <td style="width:50%;">
+                    <button class="btn btn-primary" @onclick="GenerateReport">Generar</button>
+                    <button class="btn btn-primary" @onclick="printRep">Imprimir</button>
+                    <button class="btn btn-primary" @onclick="exportRep">Exportar</button>
+                </td>
+            </tr>
+        </table>
+        <hr />
+        <label style="color:darkred;">@msgBox</label>
+        <div id="AreaImpresion">
+            <div style="width:100%;text-align:center;">
+                <img src="@CompanyLogo" width="150" />
+                <table style="width:100%;">
+                    <tr>
+                        <td style="width:100%;text-align:center;">
+                            
+                            <p><h1 id="RepTitle">@CompanyName</h1>@CompanyDir1<br />@CompanyDir2<br />@CompanyPhone</p>
+                        </td>
+                    </tr>
+                   
+                    <tr>
+                        <td>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <table style="width:100%;">
+                <tr>
+                    <td>
+                        <p><h5 id="RepReport">@sReport</h5><h6>@DateTime.Now <br />@oUser</h6></p>
+                        
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+
+                    </td>
+                </tr>
+            </table>
+            <hr />
+            <div id="divTable" name="divTable" style="width:100%;"></div>
+
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+    [BindProperty]
+    public string sTitle { get; set; } = "";
+    [BindProperty]
+    public string sSubTitle { get; set; } = "";
+    [BindProperty]
+    public string sReport { get; set; } = "";
+    [BindProperty]
+    public string sTitleId { get; set; } = "";
+    [BindProperty]
+    public string sSubTitleId { get; set; } = "";
+    [BindProperty]
+    public string sReportId { get; set; } = "";
+    [BindProperty]
+    public string iParam1 { get; set; } = "";
+    [BindProperty]
+    public string iParam2 { get; set; } = "";
+    [BindProperty]
+    public string iParam3 { get; set; } = "";
+    [BindProperty]
+    public string iParam4 { get; set; } = "";
+    [BindProperty]
+    public string iParam5 { get; set; } = "";
+    [BindProperty]
+    public string iParam6 { get; set; } = "";
+    [BindProperty]
+    public string iParam7 { get; set; } = "";
+    [BindProperty]
+    public string iParam8 { get; set; } = "";
+    [BindProperty]
+    public string iParam9 { get; set; } = "";
+    [BindProperty]
+    public string iParam10 { get; set; } = "";
+    [BindProperty]
+    public DateTime iDParam1 { get; set; } = DateTime.Today;
+    [BindProperty]
+    public DateTime iDParam2 { get; set; } = DateTime.Today;
+    [Parameter]
+    public string sTable { get; set; }
+    [BindProperty]
+    public string CompanyName { get; set; } = "";
+    [BindProperty]
+    public string CompanyLogo { get; set; } = "";
+    [BindProperty]
+    public string CompanyDir1 { get; set; } = "";
+    [BindProperty]
+    public string CompanyDir2 { get; set; } = "";
+    [BindProperty]
+    public string CompanyPhone { get; set; } = "";
+
+    private void ddlModuleChanges(ChangeEventArgs e)
+    {
+        msgBox = "";
+        sTitleId = e.Value.ToString();
+    }
+    private void ddlSubModuleChanges(ChangeEventArgs e)
+    {
+        msgBox = "";
+        sSubTitleId = e.Value.ToString();
+
+    }
+    private void ddlReportChanges(ChangeEventArgs e)
+    {
+        msgBox = "";
+        sReportId = e.Value.ToString();
+
+    }
+    private void GenerateReport()
+    {
+
+        using (var context = new Data.SQLContext())
+        {
+            string sSql = "EXEC ";
+            var conn = context.Database.GetDbConnection(); conn.Open();
+            var command = conn.CreateCommand();
+            string query = "SELECT txt_sp FROM option_report WHERE id_report = 0" + @sTitleId + " AND id_subreport = 0" + @sSubTitleId + " AND id_option = 0" + @sReportId + "  ORDER BY txt_option";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                sSql = sSql + reader.GetValue("txt_sp").ToString();
+
+            }
+            command = conn.CreateCommand();
+            query = "SELECT url_img, txt_name_branch, txt_dir1, txt_dir2, txt_tel FROM [reports_header] WHERE id_branch = (SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "')";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                CompanyLogo = reader.GetValue("url_img").ToString();
+                CompanyName = reader.GetValue("txt_name_branch").ToString();
+                CompanyDir1 = reader.GetValue("txt_dir1").ToString();
+                CompanyDir2 = reader.GetValue("txt_dir2").ToString();
+                CompanyPhone = reader.GetValue("txt_tel").ToString();
+            }
+            command = conn.CreateCommand();
+            query = "SELECT txt_reporte, txt_subreport, txt_option FROM option_report o INNER JOIN subreports sr ON sr.id_report = o.id_report AND sr.id_subreport = o.id_subreport INNER JOIN reports r ON r.id_report = o.id_report WHERE o.id_report = 0" + @sTitleId + " AND o.id_subreport = 0" + @sSubTitleId + " AND o.id_option = 0" + @sReportId + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                sTitle = reader.GetValue("txt_reporte").ToString();
+                sSubTitle = reader.GetValue("txt_subreport").ToString();
+                sReport = reader.GetValue("txt_option").ToString();
+            }
+            bool bDate = false;
+            int iCont = 0;
+            command = conn.CreateCommand();
+            query = "SELECT id_parameter, type_parameter FROM parameters_report WHERE id_report = 0" + @sTitleId + " AND id_subreport = 0" + @sSubTitleId + " AND id_option = 0" + @sReportId + " ORDER BY id_parameter";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                iCont = iCont + 1;
+                string sField = "";
+
+                if(reader.GetValue("type_parameter").ToString() == "DATE")
+                {
+                    if(bDate)
+                    {
+                        sField = "'"+iDParam2.ToString("yyyyMMdd")+"'";
+                    }
+                    else
+                    {
+                        sField = "'"+iDParam1.ToString("yyyyMMdd")+"'";
+                        bDate = true;
+                    }
+                }
+                if(reader.GetValue("type_parameter").ToString() == "USER")
+                {
+                    if(iCont == 1)
+                    {
+                        sField = "'"+iParam1.ToString()+"'";
+                    }
+                    if(iCont == 2)
+                    {
+                        sField = "'"+iParam2.ToString()+"'";
+                    }
+                    if(iCont == 3)
+                    {
+                        sField = "'"+iParam3.ToString()+"'";
+                    }
+                    if(iCont == 4)
+                    {
+                        sField = "'"+iParam4.ToString()+"'";
+                    }
+                    if(iCont == 5)
+                    {
+                        sField = "'"+iParam5.ToString()+"'";
+                    }
+                    if(iCont == 6)
+                    {
+                        sField = "'"+iParam6.ToString()+"'";
+                    }
+                    if(iCont == 7)
+                    {
+                        sField = "'"+iParam7.ToString()+"'";
+                    }
+                    if(iCont == 8)
+                    {
+                        sField = "'"+iParam8.ToString()+"'";
+                    }
+                    if(iCont == 9)
+                    {
+                        sField = "'"+iParam9.ToString()+"'";
+                    }
+                    if(iCont == 10)
+                    {
+                        sField = "'"+iParam10.ToString()+"'";
+                    }
+                }
+                if(reader.GetValue("type_parameter").ToString() == "TEXT")
+                {
+                    if(iCont == 1)
+                    {
+                        sField = "'"+iParam1.ToString()+"'";
+                    }
+                    if(iCont == 2)
+                    {
+                        sField = "'"+iParam2.ToString()+"'";
+                    }
+                    if(iCont == 3)
+                    {
+                        sField = "'"+iParam3.ToString()+"'";
+                    }
+                    if(iCont == 4)
+                    {
+                        sField = "'"+iParam4.ToString()+"'";
+                    }
+                    if(iCont == 5)
+                    {
+                        sField = "'"+iParam5.ToString()+"'";
+                    }
+                    if(iCont == 6)
+                    {
+                        sField = "'"+iParam6.ToString()+"'";
+                    }
+                    if(iCont == 7)
+                    {
+                        sField = "'"+iParam7.ToString()+"'";
+                    }
+                    if(iCont == 8)
+                    {
+                        sField = "'"+iParam8.ToString()+"'";
+                    }
+                    if(iCont == 9)
+                    {
+                        sField = "'"+iParam9.ToString()+"'";
+                    }
+                    if(iCont == 10)
+                    {
+                        sField = "'"+iParam10.ToString()+"'";
+                    }
+                }
+                if(reader.GetValue("type_parameter").ToString() == "NUMBER")
+                {
+                    if(iCont == 1)
+                    {
+                        sField = iParam1.ToString();
+                    }
+                    if(iCont == 2)
+                    {
+                        sField = iParam2.ToString();
+                    }
+                    if(iCont == 3)
+                    {
+                        sField = iParam3.ToString();
+                    }
+                    if(iCont == 4)
+                    {
+                        sField = iParam4.ToString();
+                    }
+                    if(iCont == 5)
+                    {
+                        sField = iParam5.ToString();
+                    }
+                    if(iCont == 6)
+                    {
+                        sField = iParam6.ToString();
+                    }
+                    if(iCont == 7)
+                    {
+                        sField = iParam7.ToString();
+                    }
+                    if(iCont == 8)
+                    {
+                        sField = iParam8.ToString();
+                    }
+                    if(iCont == 9)
+                    {
+                        sField = iParam9.ToString();
+                    }
+                    if(iCont == 10)
+                    {
+                        sField = iParam10.ToString();
+                    }
+                }
+
+                if (iCont > 1)
+                {
+                    sSql = sSql + ",";
+                }
+                sSql = sSql + " ";
+
+                sSql = sSql + sField;
+
+            }
+            command = conn.CreateCommand();
+            query = sSql;
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+            sTable = "<table class='table table-hover'>";
+            var icTable = 0;
+            while (reader.Read())
+            {
+                icTable = icTable + 1;
+                if(icTable == 1)
+                {
+                    sTable = sTable + "<thead>";
+                    sTable = sTable + "<tr>";
+                    for(var i = 0;i<reader.FieldCount;i++)
+                    {
+                        sTable = sTable + "<th>";
+                        sTable = sTable + reader.GetName(i);
+                        sTable = sTable + "</th>";
+                    }
+                    sTable = sTable + "</tr>";
+                    sTable = sTable + "</thead>";
+                }
+
+                if(icTable == 1)
+                {
+                    sTable = sTable + "<tbody>";
+                }
+                sTable = sTable + "<tr>";
+                for(var i = 0;i<reader.FieldCount;i++)
+                {
+
+                    sTable = sTable + "<td>";
+                    sTable = sTable + reader.GetValue(i).ToString();
+                    sTable = sTable + "</td>";
+
+                }
+                sTable = sTable + "</tr>";
+
+                
+
+
+
+
+            }
+            conn.Close();
+            sTable = sTable + "</tbody>";
+            sTable = sTable + "</table>";
+            jsRuntime.InvokeAsync<bool>("insTableReps",sTable);
+        }
+
+    }
+    private void printRep()
+    {
+        //jsRuntime.InvokeAsync<bool>("ShowAlert","Edgar");
+        jsRuntime.InvokeAsync<bool>("imprimir");
+
+    }
+
+    private void exportRep()
+    {
+        jsRuntime.InvokeAsync<bool>("downloadCSV");
+
+    }
+
+}
+

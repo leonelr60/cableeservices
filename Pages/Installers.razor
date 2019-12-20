@@ -3,7 +3,7 @@
     @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
     @inject Data.ApplicationDbContext _appContext
     @inject NavigationManager NavigationManager
-
+    @inject IJSRuntime JsRuntime;
 
     string oUser = "";
     string sIdBranch = "";
@@ -30,6 +30,8 @@
             {
                 NavigationManager.NavigateTo("Home");
             }
+            
+            
         }
     }
     catch (Exception ex)
@@ -59,7 +61,7 @@
             <tr>
                 <td><p><b>Nro. Órden Técnica:</b></p></td>
                 <td>
-                    <input @bind-value="idtechnicalorder" @bind-value:event="oninput" class="form-control" />
+                    <input id="iId" name="iId" @bind-value="idtechnicalorder" @bind-value:event="oninput" class="form-control" />
                     <button class="btn btn-primary" @onclick=@BtnFindTO>Buscar</button>
 
                 </td>
@@ -208,9 +210,21 @@
                 <td><p>@txtproblema</p></td>
             </tr>
             <tr>
+                <td><p><b>Hora de Inicio:</b></p></td>
+                <td><input id="iTimeStart" name="iTimeStart" type="time" @bind-value="timestart" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Observaciones:</b></p></td>
+                <td><input id="iObs" name="iObs" @bind-value="txtobs_ins" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
+                <td><p><b>Hora de Finalización:</b></p></td>
+                <td><input id="iTimeStop" name="iTimeStop" type="time" @bind-value="timestop" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
                 <td><p><b>Nuevo Estado:</b></p></td>
                 <td>
-                    <select class="custom-select" @bind="newidstatusorder">
+                    <select id="iNewState" name="iNewState" class="custom-select" @bind="newidstatusorder">
                         <option value="-1">Seleccione una opción</option>
                         @using (var context = new Data.SQLContext())
                         {
@@ -231,406 +245,399 @@
                 </td>
             </tr>
             <tr>
-                <td><p><b>Hora de Inicio:</b></p></td>
-                <td><input type="time" @bind-value="timestart" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><p><b>Hora de Finalización:</b></p></td>
-                <td><input type="time" @bind-value="timestop" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
-                <td><p><b>Observaciones:</b></p></td>
-                <td><input @bind-value="txtobs_ins" @bind-value:event="oninput" class="form-control" /></td>
-            </tr>
-            <tr>
                 <td><button class="btn btn-primary" @onclick=@BtnClick>Generar</button></td>
                 <td></td>
             </tr>
         </table>
 
     </Authorized>
-            <NotAuthorized>
-                <h2>Please Login</h2>
-                <a href="Identity/Account/Login">Log in</a>
-            </NotAuthorized>
-        </AuthorizeView>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
 
-        @code {
-            [BindProperty]
-            public string id_branch { get; set; } = "";
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
 
-            [BindProperty]
-            public string msgBox { get; set; } = "";
+    [BindProperty]
+    public string msgBox { get; set; } = "";
 
-            [BindProperty]
-            public string lastprocess { get; set; } = "";
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
 
-            [BindProperty]
-            public DateTime dateorder { get; set; } = DateTime.Today;
+    [BindProperty]
+    public DateTime dateorder { get; set; } = DateTime.Today;
 
-            [BindProperty]
-            public string txtobs { get; set; } = "";
-            [BindProperty]
-            public string txtobs_ins { get; set; } = "";
-            [BindProperty]
-            public bool bNames { get; set; } = false;
-            [BindProperty]
-            public string newidstatusorder { get; set; } = "";
-            [BindProperty]
-            public string idstatusorder { get; set; } = "1";
-            [BindProperty]
-            public string idtec { get; set; } = "";
-            [BindProperty]
-            public string idtechnicalorder { get; set; } = "";
-            [BindProperty]
-            public string realidtechnicalorder { get; set; } = "";
-            [BindProperty]
-            public string txtref { get; set; } = "";
-            [BindProperty]
-            public string txtproblema { get; set; } = "";
-            [BindProperty]
-            public string idtypeorder { get; set; } = "";
-            [BindProperty]
-            public string idcontract { get; set; } = "";
-            [BindProperty]
-            public string contractnum { get; set; } = "";
-            [BindProperty]
-            public string idclient { get; set; } = "";
-            [BindProperty]
-            public string firstname { get; set; } = "";
-            [BindProperty]
-            public string lastname { get; set; } = "";
-            [BindProperty]
-            public double totbalance { get; set; } = 0.00;
-            [BindProperty]
-            public int cntbalance { get; set; } = 0;
-            [BindProperty]
-            public string totcollectedcash { get; set; } = "";
-            [BindProperty]
-            public string totcollectedcheck { get; set; } = "";
-            [BindProperty]
-            public string totcollectedcard { get; set; } = "";
-            [BindProperty]
-            public string totcollecteddoc { get; set; } = "";
-            [BindProperty]
-            public string totcollectedauttec { get; set; } = "";
-            [BindProperty]
-            public string collectyearmonth { get; set; } = "";
-            [BindProperty]
-            public string timestart { get; set; } 
-            [BindProperty]
-            public string timestop { get; set; } 
+    [BindProperty]
+    public string txtobs { get; set; } = "";
+    [BindProperty]
+    public string txtobs_ins { get; set; } = "";
+    [BindProperty]
+    public bool bNames { get; set; } = false;
+    [BindProperty]
+    public string newidstatusorder { get; set; } = "";
+    [BindProperty]
+    public string idstatusorder { get; set; } = "1";
+    [BindProperty]
+    public string idtec { get; set; } = "";
+    [BindProperty]
+    public string idtechnicalorder { get; set; } = "";
+    [BindProperty]
+    public string realidtechnicalorder { get; set; } = "";
+    [BindProperty]
+    public string txtref { get; set; } = "";
+    [BindProperty]
+    public string txtproblema { get; set; } = "";
+    [BindProperty]
+    public string idtypeorder { get; set; } = "";
+    [BindProperty]
+    public string idcontract { get; set; } = "";
+    [BindProperty]
+    public string contractnum { get; set; } = "";
+    [BindProperty]
+    public string idclient { get; set; } = "";
+    [BindProperty]
+    public string firstname { get; set; } = "";
+    [BindProperty]
+    public string lastname { get; set; } = "";
+    [BindProperty]
+    public double totbalance { get; set; } = 0.00;
+    [BindProperty]
+    public int cntbalance { get; set; } = 0;
+    [BindProperty]
+    public string totcollectedcash { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcheck { get; set; } = "";
+    [BindProperty]
+    public string totcollectedcard { get; set; } = "";
+    [BindProperty]
+    public string totcollecteddoc { get; set; } = "";
+    [BindProperty]
+    public string totcollectedauttec { get; set; } = "";
+    [BindProperty]
+    public string collectyearmonth { get; set; } = "";
+    [BindProperty]
+    public string timestart { get; set; }
+    [BindProperty]
+    public string timestop { get; set; }
 
-            private void cleanscreen()
+    private void cleanscreen()
+    {
+        txtobs = "";
+        bNames = false;
+        idcontract = "";
+        contractnum = "";
+        idclient = "";
+        firstname = "";
+        lastname = "";
+        totbalance = 0.00;
+        cntbalance = 0;
+        totcollectedcash = "";
+        totcollectedcheck = "";
+        totcollectedcard = "";
+        totcollecteddoc = "";
+        totcollectedauttec = "";
+        collectyearmonth = "";
+        realidtechnicalorder = "";
+        idtec = "";
+        idtechnicalorder = "";
+        txtref = "";
+        txtproblema = "";
+        realidtechnicalorder = "";
+        txtobs_ins = "";
+
+    }
+
+    private void ddlFindNames(ChangeEventArgs e)
+    {
+        realidtechnicalorder = "";
+        msgBox = "";
+        idcontract = e.Value.ToString();
+        bNames = false;
+        BtnFindIdContract();
+    }
+
+    private void FindBalance()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
             {
-                txtobs = "";
-                bNames = false;
-                idcontract = "";
-                contractnum = "";
-                idclient = "";
-                firstname = "";
-                lastname = "";
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT *  FROM hist_collections WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_contract = " + idcontract + "";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El cliente no tiene saldo pendiente...";
+
                 totbalance = 0.00;
                 cntbalance = 0;
-                totcollectedcash = "";
-                totcollectedcheck = "";
-                totcollectedcard = "";
-                totcollecteddoc = "";
-                totcollectedauttec = "";
-                collectyearmonth = "";
-                realidtechnicalorder = "";
-                idtec = "";
-                idtechnicalorder = "";
-                txtref = "";
-                txtproblema = "";
-                realidtechnicalorder = "";
-                txtobs_ins = "";
 
-            }
-
-            private void ddlFindNames(ChangeEventArgs e)
-            {
-                realidtechnicalorder = "";
-                msgBox = "";
-                idcontract = e.Value.ToString();
-                bNames = false;
-                BtnFindIdContract();
-            }
-
-            private void FindBalance()
-            {
-                using (var context = new Data.SQLContext())
+                while (reader.Read())
                 {
-                    try
-                    {
-                        var conn = context.Database.GetDbConnection();
-                        conn.Open();
-                        var command = conn.CreateCommand();
-
-                        string query = "SELECT *  FROM hist_collections WHERE yn_payed = 0 AND yn_cancel = 0 AND";
-                        query = query + " id_branch = " + id_branch + "";
-                        query = query + " AND id_contract = " + idcontract + "";
-                        command.CommandText = query;
-                        var reader = command.ExecuteReader();   
-
-                        if (!reader.HasRows)
-                            msgBox = "El cliente no tiene saldo pendiente...";
-
-                        totbalance = 0.00;
-                        cntbalance = 0;
-
-                        while (reader.Read())
-                        {
-                            totbalance = totbalance + double.Parse(reader.GetValue("imp_collect").ToString());
-                            cntbalance = cntbalance + 1;
-
-                        }
-
-                        conn.Close();
-
-                    }
-                    catch (Exception ex)
-                    {
-                        string sMsg = ex.Message;
-                        msgBox = sMsg;
-                    }
-                }
-            }
-
-            private void BtnFindIdContract()
-            {
-                msgBox = "";
-                realidtechnicalorder = "";
-                bNames = false;
-                using (var context = new Data.SQLContext())
-                {
-                    try
-                    {
-                        var conn = context.Database.GetDbConnection();
-                        conn.Open();
-                        var command = conn.CreateCommand();
-
-                        string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
-                        command.CommandText = query;
-                        var reader = command.ExecuteReader();
-
-                        while (reader.Read())
-                        {
-                            id_branch = reader.GetValue("id_branch").ToString();
-                        }
-                        command = conn.CreateCommand();
-
-                        query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date  FROM hist_contracts WHERE ";
-                        query = query + " id_branch = " + id_branch + "";
-                        query = query + " AND id_contract = " + idcontract + "";
-                        command.CommandText = query;
-                        reader = command.ExecuteReader();
-
-                        if (!reader.HasRows)
-                            msgBox = "El dato a buscar no existe...";
-
-                        while (reader.Read())
-                        {
-                            idcontract = reader.GetValue("id_contract").ToString();
-                            contractnum = reader.GetValue("physical_contract").ToString();
-                            idclient = reader.GetValue("id_client").ToString();
-                            firstname = reader.GetValue("first_name").ToString();
-                            lastname = reader.GetValue("last_name").ToString();
-
-                        }
-
-                        conn.Close();
-                        FindBalance();
-                    }
-                    catch (Exception ex)
-                    {
-                        string sMsg = ex.Message;
-                        msgBox = sMsg;
-                    }
-                }
-
-            }
-            private void BtnFindPhysicalContract()
-            {
-                msgBox = "";
-                realidtechnicalorder = "";
-                bNames = false;
-                using (var context = new Data.SQLContext())
-                {
-                    try
-                    {
-                        var conn = context.Database.GetDbConnection();
-                        conn.Open();
-                        var command = conn.CreateCommand();
-
-                        string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
-                        command.CommandText = query;
-                        var reader = command.ExecuteReader();
-
-                        while (reader.Read())
-                        {
-                            id_branch = reader.GetValue("id_branch").ToString();
-                        }
-                        command = conn.CreateCommand();
-
-                        query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date FROM hist_contracts WHERE ";
-                        query = query + " id_branch = " + id_branch + "";
-                        query = query + " AND physical_contract = '" + contractnum + "'";
-                        command.CommandText = query;
-                        reader = command.ExecuteReader();
-
-                        if (!reader.HasRows)
-                            msgBox = "El dato a buscar no existe...";
-
-                        while (reader.Read())
-                        {
-                            idcontract = reader.GetValue("id_contract").ToString();
-                            contractnum = reader.GetValue("physical_contract").ToString();
-                            idclient = reader.GetValue("id_client").ToString();
-                            firstname = reader.GetValue("first_name").ToString();
-                            lastname = reader.GetValue("last_name").ToString();
-
-                        }
-
-                        conn.Close();
-                        FindBalance();
-                    }
-                    catch (Exception ex)
-                    {
-                        string sMsg = ex.Message;
-                        msgBox = sMsg;
-                    }
-                }
-            }
-
-            private void BtnFindTO()
-            {
-                msgBox = "";
-                bNames = false;
-                using (var context = new Data.SQLContext())
-                {
-                    realidtechnicalorder = "";
-                    try
-                    {
-                        var conn = context.Database.GetDbConnection();
-                        conn.Open();
-                        var command = conn.CreateCommand();
-
-                        string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
-                        command.CommandText = query;
-                        var reader = command.ExecuteReader();
-
-                        while (reader.Read())
-                        {
-                            id_branch = reader.GetValue("id_branch").ToString();
-                        }
-                        command = conn.CreateCommand();
-
-                        query = "SELECT t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name, ISNULL(REPLACE(CONVERT(VARCHAR(20),t1.time_start,108),'.','-'),'00:01 AM') otstart, ISNULL(REPLACE(CONVERT(VARCHAR(20),t1.time_stop,108),'.','-'),'00:01 AM') otstop FROM hist_technicalorders t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
-                        query = query + " t1.id_branch = " + id_branch + "";
-                        query = query + " AND t1.id_to_correla = " + idtechnicalorder + " AND t1.id_status NOT IN (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND (yn_closews = -1 OR yn_closewos = -1))";
-                        command.CommandText = query;
-                        reader = command.ExecuteReader();
-
-                        if (!reader.HasRows)
-                            msgBox = "El dato a buscar no existe...";
-
-                        while (reader.Read())
-                        {
-                            idcontract = reader.GetValue("id_contract").ToString();
-                            contractnum = reader.GetValue("physical_contract").ToString();
-                            idclient = reader.GetValue("id_client").ToString();
-                            firstname = reader.GetValue("first_name").ToString();
-                            lastname = reader.GetValue("last_name").ToString();
-                            realidtechnicalorder = reader.GetValue("id_to_correla").ToString();
-                            idstatusorder = reader.GetValue("id_status").ToString();
-                            idtypeorder = reader.GetValue("id_to").ToString();
-                            idtec = reader.GetValue("id_tec").ToString();
-                            txtref = reader.GetValue("txt_ref").ToString();
-                            txtproblema = reader.GetValue("txt_problem").ToString();
-                            dateorder = DateTime.Parse(reader.GetValue("dateorder").ToString());
-                            timestart = reader.GetValue("otstart").ToString();
-                            timestop =reader.GetValue("otstop").ToString();
-                        }
-
-                        conn.Close();
-                        if (idcontract.Length > 0)
-                            FindBalance();
-                    }
-                    catch (Exception ex)
-                    {
-                        string sMsg = ex.Message;
-                        msgBox = sMsg;
-                    }
-                }
-            }
-
-            private void BtnFindNames()
-            {
-                msgBox = "";
-                bNames = true;
-            }
-
-            private void BtnClick()
-            {
-                using (var context = new Data.SQLContext())
-                {
-                    try
-                    {
-
-                        var conn = context.Database.GetDbConnection();
-                        conn.Open();
-                        var command = conn.CreateCommand();
-
-                        string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
-                        command.CommandText = query;
-                        var reader = command.ExecuteReader();
-
-                        while (reader.Read())
-                        {
-                            id_branch = reader.GetValue("id_branch").ToString();
-                        }
-
-                        command = conn.CreateCommand();
-
-                        if (realidtechnicalorder.Length > 0)
-                        {
-                            query = "UPDATE hist_technicalorders SET ";
-                            query = query + " id_status = 0" + newidstatusorder + "";
-                            query = query + ", date_modif = getdate() ";
-                            query = query + ", txt_tech_obs = '" + txtobs_ins + "'";
-                            query = query + ", time_start = '" + timestart.ToString() + "'";
-                            query = query + ", time_stop = '" + timestop.ToString() + "'";
-                            query = query + " WHERE id_to_correla = " + realidtechnicalorder;
-                            query = query + " AND id_branch = " + id_branch + "";
-                            query = query + " AND id_contract = " + idcontract + "";
-                            query = query + " AND id_status not in (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND yn_active = -1 AND (yn_closews = -1 OR yn_closewos = -1))";
-                            command.CommandText = query;
-                            command.ExecuteNonQuery();
-                            msgBox = "OT " + realidtechnicalorder.ToString() + " guardada correctamente...";
-                        }
-
-
-
-
-
-                        conn.Close();
-                        cleanscreen();
-                        NavigationManager.NavigateTo("/installers");
-                    }
-                    catch (Exception ex)
-                    {
-                        string sMsg = ex.Message;
-                        msgBox = sMsg;
-                    }
-
-
-
-
+                    totbalance = totbalance + double.Parse(reader.GetValue("imp_collect").ToString());
+                    cntbalance = cntbalance + 1;
 
                 }
 
+                conn.Close();
+
             }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindIdContract()
+    {
+        msgBox = "";
+        realidtechnicalorder = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date  FROM hist_contracts WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND id_contract = " + idcontract + "";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+
+    }
+    private void BtnFindPhysicalContract()
+    {
+        msgBox = "";
+        realidtechnicalorder = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT *, ISNULL(REPLACE(CONVERT(VARCHAR(10),discharge_date,102),'.','-'),'1900-01-01') f_discharge_date FROM hist_contracts WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND physical_contract = '" + contractnum + "'";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+
+                }
+
+                conn.Close();
+                FindBalance();
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindTO()
+    {
+        msgBox = "";
+        bNames = false;
+        using (var context = new Data.SQLContext())
+        {
+            realidtechnicalorder = "";
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name, ISNULL(REPLACE(CONVERT(VARCHAR(20),t1.time_start,108),'.','-'),'00:01 AM') otstart, ISNULL(REPLACE(CONVERT(VARCHAR(20),t1.time_stop,108),'.','-'),'00:01 AM') otstop FROM hist_technicalorders t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
+                query = query + " t1.id_branch = " + id_branch + "";
+                query = query + " AND t1.id_to_correla = " + idtechnicalorder + " AND t1.id_status NOT IN (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND (yn_closews = -1 OR yn_closewos = -1))";
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                    msgBox = "El dato a buscar no existe...";
+
+                while (reader.Read())
+                {
+                    idcontract = reader.GetValue("id_contract").ToString();
+                    contractnum = reader.GetValue("physical_contract").ToString();
+                    idclient = reader.GetValue("id_client").ToString();
+                    firstname = reader.GetValue("first_name").ToString();
+                    lastname = reader.GetValue("last_name").ToString();
+                    realidtechnicalorder = reader.GetValue("id_to_correla").ToString();
+                    idstatusorder = reader.GetValue("id_status").ToString();
+                    idtypeorder = reader.GetValue("id_to").ToString();
+                    idtec = reader.GetValue("id_tec").ToString();
+                    txtref = reader.GetValue("txt_ref").ToString();
+                    txtproblema = reader.GetValue("txt_problem").ToString();
+                    dateorder = DateTime.Parse(reader.GetValue("dateorder").ToString());
+                    timestart = reader.GetValue("otstart").ToString();
+                    timestop = reader.GetValue("otstop").ToString();
+                }
+
+                conn.Close();
+                if (idcontract.Length > 0)
+                    FindBalance();
+
+                if (idcontract.Length > 0)
+                    JsRuntime.InvokeAsync<string>("MySetFocus", "iId");
+                else
+                    JsRuntime.InvokeAsync<string>("MySetFocus", "iTimeStart");
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+        }
+    }
+
+    private void BtnFindNames()
+    {
+        msgBox = "";
+        bNames = true;
+    }
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+
+                command = conn.CreateCommand();
+
+                if (realidtechnicalorder.Length > 0)
+                {
+                    query = "UPDATE hist_technicalorders SET ";
+                    query = query + " id_status = 0" + newidstatusorder + "";
+                    query = query + ", date_modif = getdate() ";
+                    query = query + ", txt_tech_obs = '" + txtobs_ins + "'";
+                    query = query + ", time_start = '" + timestart.ToString() + "'";
+                    query = query + ", time_stop = '" + timestop.ToString() + "'";
+                    query = query + " WHERE id_to_correla = " + realidtechnicalorder;
+                    query = query + " AND id_branch = " + id_branch + "";
+                    query = query + " AND id_contract = " + idcontract + "";
+                    query = query + " AND id_status not in (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND yn_active = -1 AND (yn_closews = -1 OR yn_closewos = -1))";
+                    command.CommandText = query;
+                    command.ExecuteNonQuery();
+                    msgBox = "OT " + realidtechnicalorder.ToString() + " guardada correctamente...";
+                }
+
+
+
+
+
+                conn.Close();
+                cleanscreen();
+                NavigationManager.NavigateTo("/installers");
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
 
         }
+
+    }
+
+}
 
