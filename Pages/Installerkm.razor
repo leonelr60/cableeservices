@@ -8,6 +8,7 @@
     string oUser = "";
     string sIdBranch = "";
     string sIdTec = "";
+    string sIdInternalRole = "";
     try
     {
         oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
@@ -17,13 +18,14 @@
             conn.Open();
             var command = conn.CreateCommand();
 
-            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            string query = "SELECT id_branch, id_internal_role FROM branches_roles  WHERE email_member = '" + oUser + "'";
             command.CommandText = query;
             var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
                 sIdBranch = reader.GetValue("id_branch").ToString();
+                sIdInternalRole = reader.GetValue("id_internal_role").ToString();
             }
             command = conn.CreateCommand();
             query = "SELECT cc.id_coworker FROM coworkers_catalog cc INNER JOIN installers i ON i.id_branch = cc.id_branch and i.id_coworker = cc.id_coworker  WHERE cc.txt_email = '" + oUser + "'";
@@ -37,6 +39,14 @@
             conn.Close();
             if (sIdBranch.Length <= 0)
             {
+                NavigationManager.NavigateTo("Home");
+            }
+            if (int.Parse(sIdInternalRole) == 1 || int.Parse(sIdInternalRole) == 5)
+            {
+                //Access App
+            }
+            else
+            { 
                 NavigationManager.NavigateTo("Home");
             }
         }

@@ -1,0 +1,56 @@
+﻿@page "/settings"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdInternalRole = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch, id_internal_role FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+                sIdInternalRole = reader.GetValue("id_internal_role").ToString();
+            }
+
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+            if (int.Parse(sIdInternalRole) == 1 || int.Parse(sIdInternalRole) == 14)
+            {
+                //Access App
+            }
+            else
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+
+<h3>Settings</h3>
+
+@code {
+
+}

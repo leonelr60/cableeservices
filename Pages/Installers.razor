@@ -7,6 +7,7 @@
 
     string oUser = "";
     string sIdBranch = "";
+    string sIdInternalRole = "";
     try
     {
         oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
@@ -16,13 +17,14 @@
             conn.Open();
             var command = conn.CreateCommand();
 
-            string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            string query = "SELECT id_branch, id_internal_role FROM branches_roles  WHERE email_member = '" + oUser + "'";
             command.CommandText = query;
             var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
                 sIdBranch = reader.GetValue("id_branch").ToString();
+                sIdInternalRole = reader.GetValue("id_internal_role").ToString();
             }
 
             conn.Close();
@@ -30,7 +32,14 @@
             {
                 NavigationManager.NavigateTo("Home");
             }
-            
+            if (int.Parse(sIdInternalRole) == 1 || int.Parse(sIdInternalRole) == 5)
+            {
+                //Access App
+            }
+            else
+            { 
+                NavigationManager.NavigateTo("Home");
+            }
             
         }
     }
