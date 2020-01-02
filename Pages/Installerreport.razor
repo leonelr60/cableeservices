@@ -82,17 +82,16 @@
                     <td><p><b>Contrato</b></p></td>
                     <td><p><b>Colonia</b></p></td>
                     <td><p><b>Cliente</b></p></td>
-                    
                     <td><p><b>Dir.</b></p></td>
                     <td><p><b>Contador</b></p></td>
                     <td><p><b>Poste</b></p></td>
-
+                    <td><p><b>Servicio</b></p></td>
                 </tr>
                 @using (var context = new Data.SQLContext())
                 {
                     var conn = context.Database.GetDbConnection(); conn.Open();
                     var command = conn.CreateCommand();
-                    string query = "SELECT tto.txt_to, t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.*, z.* FROM hist_technicalorders t1 INNER JOIN types_technical_ordes tto ON tto.id_branch = t1.id_branch AND tto.yn_active = -1 AND tto.id_to = t1.id_to INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t2.id_zip_coverage WHERE ";
+                    string query = "SELECT tto.txt_to, t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.*, z.*, sc.txt_service FROM hist_technicalorders t1 INNER JOIN types_technical_ordes tto ON tto.id_branch = t1.id_branch AND tto.yn_active = -1 AND tto.id_to = t1.id_to INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract  INNER JOIN services_catalog sc ON sc.id_branch = t2.id_branch AND sc.id_service = t2.id_service INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t2.id_zip_coverage WHERE ";
                         query = query + " t1.id_branch = " + sIdBranch + "";
                         query = query + " AND t1.id_tec = " + sIdTec + " AND t1.id_status NOT IN (SELECT id_status FROM technical_orders_status WHERE id_branch = " + sIdBranch + " AND (yn_closews = -1 OR yn_closewos = -1))";
                     command.CommandText = query;
@@ -108,7 +107,7 @@
                 <td><p>@reader.GetValue("client_address").ToString()</p></td>
                 <td><p>@reader.GetValue("txt_counter").ToString()</p></td>
                 <td><p>@reader.GetValue("txt_pole").ToString()</p></td>
-
+                <td><p>@reader.GetValue("txt_service").ToString()</p></td>
             </tr>
                     }
 
