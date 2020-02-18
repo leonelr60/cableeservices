@@ -590,6 +590,7 @@
                     query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
                     query = query + ", '" + txtref + "'";
                     query = query + ", '" + txtproblema + "', null, null, null, null";
+                    query = query + ", '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null";
                     command.CommandText = query;
                     command.ExecuteNonQuery();
                     msgBox = "OT " + sCorrela.ToString() + " creada correctamente...";
@@ -642,6 +643,7 @@
                     query = query + ", id_status = 0" + idstatusorder + "";
                     query = query + ", id_tec = 0" + idtec + "";
                     query = query + ", date_modif = getdate() ";
+                    query = query + ", txt_modif_user = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
                     query = query + ", date_to = '" + dateorder.Date.ToString("yyyyMMdd") + "'";
                     query = query + ", txt_ref = '" + txtref + "'";
                     query = query + ", txt_problem = '" + txtproblema + "'";
@@ -681,6 +683,7 @@
                     query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
                     query = query + ", '" + txtref + "'";
                     query = query + ", '" + txtproblema + "', null, null, '"+timestart+"', null";
+                    query = query + ", '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null";
                     command.CommandText = query;
                     command.ExecuteNonQuery();
                     idtechnicalorder = sCorrela;
