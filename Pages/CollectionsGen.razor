@@ -67,6 +67,19 @@
         <br />
         <br />
         <button class="btn btn-primary" @onclick=@BtnClick>Generar</button>
+        <hr />
+        <h3>Recargos y Descuentos Manuales</h3>
+        <hr />
+        <label>Contrato Interno</label>
+        <input type="text" @bind-value="IdContract" @bind-value:event="oninput" class="form-control" />
+        <label>Importe (+/-)</label>
+        <input type="text" @bind-value="ImpCollect" @bind-value:event="oninput" class="form-control" />
+        <label>Observaciones</label>
+        <input type="text" @bind-value="Observations" @bind-value:event="oninput" class="form-control" />
+        <br />
+        <br />
+        <button class="btn btn-primary" @onclick=@BtnFeesDis>Generar</button>
+
     </Authorized>
     <NotAuthorized>
         <h2>Please Login</h2>
@@ -83,6 +96,14 @@
     [BindProperty]
     public string lastprocess { get; set; } = "";
 
+    [BindProperty]
+    public string IdContract { get; set; } = "";
+
+    [BindProperty]
+    public string ImpCollect { get; set; } = "0.00";
+
+    [BindProperty]
+    public string Observations { get; set; } = "";
 
     private void BtnClick()
     {
@@ -126,6 +147,56 @@
         }
 
     }
-                    
+
+    private void BtnFeesDis()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "INSERT INTO hist_collections_feesdis SELECT " + id_branch + ", " + IdContract;
+                query = query + ", 0, " + lastprocess + ", " + ImpCollect + ", getdate() ";
+                query = query + ", UPPER('" + Observations + "')";
+                query = query + ", '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                query = query + "                  UPDATE hist_collections SET ";
+                query = query + " imp_collect = imp_collect + " + ImpCollect + "";
+                query = query + " WHERE id_branch = " + id_branch;
+                query = query + " AND id_contract = " + IdContract;
+                query = query + " AND ym_collect = " + lastprocess;
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+                NavigationManager.NavigateTo("/");
+            }
+            catch(Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
 }
             

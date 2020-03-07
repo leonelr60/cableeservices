@@ -94,7 +94,7 @@
                     <td><p><b>Contrato</b></p></td>
                     <td><p><b>Cliente</b></p></td>
                     <td><p><b>Mes</b></p></td>
-                    <td><p><b>Saldo</b></p></td>
+                    <td><p><b>Cuota Original</b></p></td>
                 </tr>
                 @using (var context = new Data.SQLContext())
                 {
@@ -128,7 +128,7 @@
                     <td><p><b>Contrato</b></p></td>
                     <td><p><b>Cliente</b></p></td>
                     <td><p><b>Mes</b></p></td>
-                    <td><p><b>Saldo</b></p></td>
+                    <td><p><b>Valor Cobrado</b></p></td>
                 </tr>
                 @using (var context = new Data.SQLContext())
                 {
@@ -263,6 +263,14 @@
     public string totcollectedauttec { get; set; } = "";
     [BindProperty]
     public string collectyearmonth { get; set; } = "";
+    [BindProperty]
+    public string billseries { get; set; } = "";
+    [BindProperty]
+    public string billfrom { get; set; } = "";
+    [BindProperty]
+    public string billto { get; set; } = "";
+    [BindProperty]
+    public DateTime billdate { get; set; } = DateTime.Today;
 
     private void selectItem(string sVal)
     {
@@ -301,7 +309,7 @@
             }
             command = conn.CreateCommand();
             query = "INSERT INTO hist_collect_applications ";
-            query = query + " SELECT id_branch, id_contract, ym_collect, id_client, first_name, last_name, id_collector, imp_payment_cash + imp_payment_check + imp_payment_card + imp_payment_others, '' id_bank, 0, 0, 0, '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null, getdate(), null  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = -1 AND yn_cancel = 0 AND yn_cashier = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
+            query = query + " SELECT id_branch, id_contract, ym_collect, id_client, first_name, last_name, id_collector, imp_payment_cash + imp_payment_check + imp_payment_card + imp_payment_others, '' id_bank, 0, 0, 0, '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null, getdate(), null, UPPER('"+billseries+"'), UPPER('"+billfrom+"'), UPPER('"+billto+"'), '"+billdate.ToString("yyyyMMdd")+"'  FROM hist_collections WHERE id_branch = " + sIdBranch + " AND id_collector = " + sIdCollector + " AND (yn_payed = -1 AND yn_cancel = 0 AND yn_cashier = 0) AND (CONVERT(VARCHAR(38),id_contract) + '-' + CONVERT(VARCHAR(38), ym_collect)) = '" + sVal + "'";
 
             command.CommandText = query;
             command.ExecuteNonQuery();
@@ -387,6 +395,9 @@
         totcollecteddoc = "";
         totcollectedauttec = "";
         collectyearmonth = "";
+        billfrom = "";
+        billseries = "";
+        billto = "";
     }
 
     

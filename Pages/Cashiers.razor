@@ -145,7 +145,18 @@
                     }
                 </td>
             </tr>
-
+            <tr>
+                <td><p><b>Dirección:</b></p></td>
+                <td><input @bind-value="clientaddress" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
+            <tr>
+                <td><p><b>Contador:</b></p></td>
+                <td><input @bind-value="counter" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
+            <tr>
+                <td><p><b>Poste:</b></p></td>
+                <td><input @bind-value="pole" @bind-value:event="oninput" class="form-control" readonly /></td>
+            </tr>
         </table>
         <br />
         <table style="width:100%;">
@@ -246,6 +257,12 @@
     public string totcollectedauttec { get; set; } = "";
     [BindProperty]
     public string collectyearmonth { get; set; } = "";
+    [BindProperty]
+    public string clientaddress { get; set; } = "";
+    [BindProperty]
+    public string counter { get; set; } = "";
+    [BindProperty]
+    public string pole { get; set; } = "";
 
     private void cleanscreen()
     {
@@ -256,6 +273,9 @@
         idclient = "";
         firstname = "";
         lastname = "";
+        clientaddress = "";
+        counter = "";
+        pole = "";
         totbalance = 0.00;
         cntbalance = 0;
         totcollectedcash = "";
@@ -284,9 +304,9 @@
                 conn.Open();
                 var command = conn.CreateCommand();
 
-                string query = "SELECT *  FROM hist_collections WHERE yn_payed = 0 AND yn_cancel = 0 AND";
-                query = query + " id_branch = " + id_branch + "";
-                query = query + " AND id_contract = " + idcontract + "";
+                string query = "SELECT hc.imp_collect + CASE WHEN day(getdate()) > seca.late_payment_day OR hc.ym_collect < convert(Varchar(6),getdate(),112) THEN seca.late_payment_fee ELSE 0 END imp_collect  FROM hist_collections hc INNER JOIN services_catalog seca ON seca.id_branch = hc.id_branch AND seca.id_service = hc.id_service  WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                query = query + " hc.id_branch = " + id_branch + "";
+                query = query + " AND hc.id_contract = " + idcontract + "";
                 command.CommandText = query;
                 var reader = command.ExecuteReader();
 
@@ -352,7 +372,9 @@
                     idclient = reader.GetValue("id_client").ToString();
                     firstname = reader.GetValue("first_name").ToString();
                     lastname = reader.GetValue("last_name").ToString();
-
+                    clientaddress = reader.GetValue("client_address").ToString();
+                    counter = reader.GetValue("txt_counter").ToString();
+                    pole = reader.GetValue("txt_pole").ToString();
                 }
 
                 conn.Close();
@@ -404,7 +426,9 @@
                     idclient = reader.GetValue("id_client").ToString();
                     firstname = reader.GetValue("first_name").ToString();
                     lastname = reader.GetValue("last_name").ToString();
-
+                    clientaddress = reader.GetValue("client_address").ToString();
+                    counter = reader.GetValue("txt_counter").ToString();
+                    pole = reader.GetValue("txt_pole").ToString();
                 }
 
                 conn.Close();
@@ -455,9 +479,9 @@
                 {
                     command = conn.CreateCommand();
 
-                    query = "SELECT ym_collect, imp_collect FROM hist_collections ";
-                    query = query + " WHERE yn_payed = 0 AND yn_cancel = 0 AND id_branch = " + id_branch + " AND  id_contract = ";
-                    query = query + idcontract;
+                    query = "SELECT hc.ym_collect, hc.imp_collect + CASE WHEN day(getdate()) > seca.late_payment_day OR hc.ym_collect < convert(Varchar(6),getdate(),112) THEN seca.late_payment_fee ELSE 0 END imp_collect  FROM hist_collections hc INNER JOIN services_catalog seca ON seca.id_branch = hc.id_branch AND seca.id_service = hc.id_service  WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                    query = query + " hc.id_branch = " + id_branch + "";
+                    query = query + " AND hc.id_contract = " + idcontract + "";
                     command.CommandText = query;
                     reader = command.ExecuteReader();
                     while (reader.Read())

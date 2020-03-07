@@ -67,6 +67,10 @@
 
         <table style="width:100%;">
             <tr>
+                <td><p><b>Nro. OT:</b></p></td>
+                <td><input @bind-value="idOT" @bind-value:event="oninput" class="form-control" /></td>
+            </tr>
+            <tr>
                 <td><p><b>Bodega:</b></p></td>
                 <td>
                     <select class="custom-select" @bind="id_cellar">
@@ -165,11 +169,12 @@
         <hr />
         <table style="width:100%;">
             <tr>
+                <td><p><b>OT</b></p></td>
                 <td><p><b>ID Producto</b></p></td>
                 <td><p><b>Movimiento</b></p></td>
                 <td><p><b>Cantidad</b></p></td>
                 <td><p><b>Fecha y Hora</b></p></td>
-                
+
 
             </tr>
             @using (var context = new Data.SQLContext())
@@ -183,13 +188,14 @@
                 var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                    <tr>
-                        <td><p>@reader.GetValue("id_product").ToString()</p></td>
-                        <td><p>@reader.GetValue("txt_mov").ToString()</p></td>
-                        <td><p>@reader.GetValue("qty_exist").ToString()</p></td>
-                        <td><p>@reader.GetValue("creation_date").ToString()</p></td>
+        <tr>
+            <td><p>@reader.GetValue("id_ot").ToString()</p></td>
+            <td><p>@reader.GetValue("id_product").ToString()</p></td>
+            <td><p>@reader.GetValue("txt_mov").ToString()</p></td>
+            <td><p>@reader.GetValue("qty_exist").ToString()</p></td>
+            <td><p>@reader.GetValue("creation_date").ToString()</p></td>
 
-                    </tr>
+        </tr>
                 }
 
                 conn.Close();
@@ -222,14 +228,16 @@
     public bool bProduct { get; set; } = false;
     [BindProperty]
     public bool bModif { get; set; } = false;
-
+    [BindProperty]
+    public string idOT { get; set; } = "";
+    
 
     private void cleanscreen()
     {
         codprod = "";
         nameprod = "";
         qtyexist = "";
-
+        idOT = "";
         bModif = false;
 
     }
@@ -336,7 +344,7 @@
                     query = query + ", 0" + idMov + "";
                     query = query + ", 0" + qtyexist;
                     query = query + ", UPPER('" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "')";
-                    query = query + ", getdate(), null, null, null";
+                    query = query + ", getdate(), null, null, null, 0" + idOT;
 
                     command.CommandText = query;
                     command.ExecuteNonQuery();

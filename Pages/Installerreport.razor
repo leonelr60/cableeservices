@@ -85,7 +85,9 @@
                     <td><p><b>Dir.</b></p></td>
                     <td><p><b>Contador</b></p></td>
                     <td><p><b>Poste</b></p></td>
+                    <td><p><b>Telefono</b></p></td>
                     <td><p><b>Servicio</b></p></td>
+                    <td><p><b>Televisores</b></p></td>
                 </tr>
                 @using (var context = new Data.SQLContext())
                 {
@@ -101,13 +103,15 @@
             <tr>
                 <td><p>@reader.GetValue("id_to_correla").ToString()</p></td>
                 <td><p>@reader.GetValue("txt_to").ToString()</p></td>
-                <td><p>@reader.GetValue("id_contract").ToString()</p></td>
+                <td><p>@reader.GetValue("physical_contract").ToString()</p></td>
                 <td><p>@reader.GetValue("id_zip_coverage").ToString() - @reader.GetValue("txt_zip").ToString()</p></td>
                 <td><p>@reader.GetValue("id_client").ToString() - @reader.GetValue("last_name").ToString() @reader.GetValue("first_name").ToString()</p></td>
                 <td><p>@reader.GetValue("client_address").ToString()</p></td>
                 <td><p>@reader.GetValue("txt_counter").ToString()</p></td>
                 <td><p>@reader.GetValue("txt_pole").ToString()</p></td>
+                <td><p>@reader.GetValue("txt_phone").ToString()</p></td>
                 <td><p>@reader.GetValue("txt_service").ToString()</p></td>
+                <td><p>Prin. @reader.GetValue("principal_tvs").ToString() <br /> Adic. @reader.GetValue("additional_tvs").ToString()</p></td>
             </tr>
                     }
 

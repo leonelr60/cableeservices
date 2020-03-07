@@ -248,9 +248,9 @@
                 conn.Open();
                 var command = conn.CreateCommand();
 
-                string query = "SELECT *  FROM hist_collections WHERE yn_payed = 0 AND yn_cancel = 0 AND";
-                query = query + " id_branch = " + id_branch + "";
-                query = query + " AND id_contract = " + idcontract + "";
+                string query = "SELECT hc.imp_collect + CASE WHEN day(getdate()) > seca.late_payment_day OR hc.ym_collect < convert(Varchar(6),getdate(),112) THEN seca.late_payment_fee ELSE 0 END imp_collect  FROM hist_collections hc INNER JOIN services_catalog seca ON seca.id_branch = hc.id_branch AND seca.id_service = hc.id_service  WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                query = query + " hc.id_branch = " + id_branch + "";
+                query = query + " AND hc.id_contract = " + idcontract + "";
                 command.CommandText = query;
                 var reader = command.ExecuteReader();
 
@@ -419,9 +419,10 @@
                 {
                     command = conn.CreateCommand();
 
-                    query = "SELECT ym_collect, imp_collect FROM hist_collections ";
-                    query = query + " WHERE yn_payed = 0 AND yn_cancel = 0 AND id_branch = " +  id_branch + " AND  id_contract = ";
-                    query = query + idcontract;
+                    query = "SELECT hc.ym_collect, hc.imp_collect + CASE WHEN day(getdate()) > seca.late_payment_day OR hc.ym_collect < convert(Varchar(6),getdate(),112) THEN seca.late_payment_fee ELSE 0 END imp_collect  FROM hist_collections hc INNER JOIN services_catalog seca ON seca.id_branch = hc.id_branch AND seca.id_service = hc.id_service  WHERE yn_payed = 0 AND yn_cancel = 0 AND";
+                    query = query + " hc.id_branch = " + id_branch + "";
+                    query = query + " AND hc.id_contract = " + idcontract + "";
+                
                     command.CommandText = query;
                     reader = command.ExecuteReader();
                     while (reader.Read())

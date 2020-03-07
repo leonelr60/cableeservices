@@ -85,32 +85,36 @@
                         <td><p><b>Dir. Cobro</b></p></td>
                         <td><p><b>Contador</b></p></td>
                         <td><p><b>Poste</b></p></td>
+                        <td><p><b>Telefono</b></p></td>
                         <td><p><b>Mes</b></p></td>
+                        <td><p><b>Dia a Cobrar</b></p></td>
                         <td><p><b>Saldo</b></p></td>
                     </tr>
                     @using (var context = new Data.SQLContext())
                     {
                         var conn = context.Database.GetDbConnection(); conn.Open();
                         var command = conn.CreateCommand();
-                        string query = "SELECT t1.id_contract, t1.id_zip_coverage, t1.id_client, t1.last_name + ' ' + t1.first_name txt_ccustomer, t1.billing_name, t1.collect_address, t1.txt_counter, t1.txt_pole, t1.ym_collect, t1.imp_collect, t1.ein_number, z.*  FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage WHERE t1.id_branch = " + sIdBranch + " AND t1.id_collector = " + sIdCollector + " AND (t1.yn_payed = 0 AND t1.yn_cancel = 0) AND t1.newdate_collect IS NULL ";
-                        query = query + " UNION ALL SELECT t1.id_contract, t1.id_zip_coverage, t1.id_client, t1.last_name + ' ' + t1.first_name txt_ccustomer, t1.billing_name, t1.collect_address, t1.txt_counter, t1.txt_pole, t1.ym_collect, t1.imp_collect, t1.ein_number, z.*  FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage WHERE t1.id_branch = " + sIdBranch + " AND t1.id_collector = " + sIdCollector + " AND (t1.yn_payed = 0 AND t1.yn_cancel = 0) AND t1.newdate_collect <= CONVERT(VARCHAR(10),getdate(),112) ORDER BY t1.id_zip_coverage, t1.collect_address, t1.last_name + ' ' + t1.first_name, t1.ym_collect";
+                        string query = "SELECT t1.physical_contract, t1.txt_phone, t1.id_zip_coverage, t1.id_client, t1.last_name + ' ' + t1.first_name txt_ccustomer, t1.billing_name, t1.collect_address, t1.txt_counter, t1.txt_pole, t1.ym_collect, (t1.imp_collect + CASE WHEN day(getdate()) > seca.late_payment_day OR t1.ym_collect < convert(Varchar(6),getdate(),112) THEN seca.late_payment_fee ELSE 0 END) imp_collect, t1.ein_number, z.*, t1.collect_day  FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage INNER JOIN services_catalog seca ON seca.id_branch = t1.id_branch AND seca.id_service = t1.id_service WHERE t1.id_branch = " + sIdBranch + " AND t1.id_collector = " + sIdCollector + " AND (t1.yn_payed = 0 AND t1.yn_cancel = 0) AND t1.newdate_collect IS NULL ";
+                        query = query + " UNION ALL SELECT t1.physical_contract, t1.txt_phone, t1.id_zip_coverage, t1.id_client, t1.last_name + ' ' + t1.first_name txt_ccustomer, t1.billing_name, t1.collect_address, t1.txt_counter, t1.txt_pole, t1.ym_collect, (t1.imp_collect + CASE WHEN day(getdate()) > seca.late_payment_day OR t1.ym_collect < convert(Varchar(6),getdate(),112) THEN seca.late_payment_fee ELSE 0 END) imp_collect, t1.ein_number, z.*, t1.collect_day  FROM hist_collections t1 INNER JOIN zip_catalog z ON z.id_branch = t1.id_branch AND z.yn_active = -1 AND z.id_zip = t1.id_zip_coverage INNER JOIN services_catalog seca ON seca.id_branch = t1.id_branch AND seca.id_service = t1.id_service WHERE t1.id_branch = " + sIdBranch + " AND t1.id_collector = " + sIdCollector + " AND (t1.yn_payed = 0 AND t1.yn_cancel = 0) AND t1.newdate_collect <= CONVERT(VARCHAR(10),getdate(),112) ORDER BY t1.id_zip_coverage, t1.collect_address, t1.last_name + ' ' + t1.first_name, t1.ym_collect";
                         
                         command.CommandText = query;
                         var reader = command.ExecuteReader();
                         while (reader.Read())
                         {
-                            <tr>
-                                <td><p>@reader.GetValue("id_contract").ToString()</p></td>
-                                <td><p>@reader.GetValue("id_zip_coverage").ToString() - @reader.GetValue("txt_zip").ToString()</p></td>
-                                <td><p>@reader.GetValue("id_client").ToString() - @reader.GetValue("txt_ccustomer").ToString()</p></td>
-                                <td><p>@reader.GetValue("ein_number").ToString()</p></td>
-                                <td><p>@reader.GetValue("billing_name").ToString()</p></td>
-                                <td><p>@reader.GetValue("collect_address").ToString()</p></td>
-                                <td><p>@reader.GetValue("txt_counter").ToString()</p></td>
-                                <td><p>@reader.GetValue("txt_pole").ToString()</p></td>
-                                <td><p>@reader.GetValue("ym_collect").ToString()</p></td>
-                                <td><p>@reader.GetValue("imp_collect").ToString()</p></td>
-                            </tr>
+                <tr>
+                    <td><p>@reader.GetValue("physical_contract").ToString()</p></td>
+                    <td><p>@reader.GetValue("id_zip_coverage").ToString() - @reader.GetValue("txt_zip").ToString()</p></td>
+                    <td><p>@reader.GetValue("id_client").ToString() - @reader.GetValue("txt_ccustomer").ToString()</p></td>
+                    <td><p>@reader.GetValue("ein_number").ToString()</p></td>
+                    <td><p>@reader.GetValue("billing_name").ToString()</p></td>
+                    <td><p>@reader.GetValue("collect_address").ToString()</p></td>
+                    <td><p>@reader.GetValue("txt_counter").ToString()</p></td>
+                    <td><p>@reader.GetValue("txt_pole").ToString()</p></td>
+                    <td><p>@reader.GetValue("txt_phone").ToString()</p></td>
+                    <td><p>@reader.GetValue("ym_collect").ToString()</p></td>
+                    <td><p>@reader.GetValue("collect_day").ToString()</p></td>
+                    <td><p>@reader.GetValue("imp_collect").ToString()</p></td>
+                </tr>
                         }
 
                         conn.Close();

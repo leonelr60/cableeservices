@@ -293,7 +293,7 @@
                     query = query + ", 0" + idMov + "";
                     query = query + ", 0" + qtyexist;
                     query = query + ", UPPER('" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "')";
-                    query = query + ", getdate(), null, null, null";
+                    query = query + ", getdate(), null, null, null, null";
                     
                     command.CommandText = query;
                     command.ExecuteNonQuery();

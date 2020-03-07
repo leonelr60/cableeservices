@@ -107,6 +107,13 @@
                 </td>
             </tr>
             <tr>
+                <td><p><b>Nro. Telefono:</b></p></td>
+                <td>
+                    <input @bind-value="txtPhone" @bind-value:event="oninput" class="form-control" />
+                    
+                </td>
+            </tr>
+            <tr>
                 <td><p><b>Nro. Órden Técnica:</b></p></td>
                 <td>
                     <input @bind-value="idtechnicalorder" @bind-value:event="oninput" class="form-control" />
@@ -283,6 +290,8 @@
     public string totcollectedauttec { get; set; } = "";
     [BindProperty]
     public string collectyearmonth { get; set; } = "";
+    [BindProperty]
+    public string txtPhone { get; set; } = "";
 
     private void cleanscreen()
     {
@@ -290,6 +299,7 @@
         bNames = false;
         idcontract = "";
         contractnum = "";
+        txtPhone = "";
         idclient = "";
         firstname = "";
         lastname = "";
@@ -313,7 +323,7 @@
 
     private void ddlFindNames(ChangeEventArgs e)
     {
-       
+
         msgBox = "";
         idcontract = e.Value.ToString();
         bNames = false;
@@ -363,7 +373,7 @@
     private void BtnFindIdContract()
     {
         msgBox = "";
-       
+
         bNames = false;
         bool bData = false;
         using (var context = new Data.SQLContext())
@@ -400,6 +410,7 @@
                     idclient = reader.GetValue("id_client").ToString();
                     firstname = reader.GetValue("first_name").ToString();
                     lastname = reader.GetValue("last_name").ToString();
+                    txtPhone = reader.GetValue("txt_phone").ToString();
                     bData = true;
                 }
 
@@ -420,7 +431,7 @@
     private void BtnFindPhysicalContract()
     {
         msgBox = "";
-        
+
         bNames = false;
         bool bData = false;
         using (var context = new Data.SQLContext())
@@ -457,6 +468,7 @@
                     idclient = reader.GetValue("id_client").ToString();
                     firstname = reader.GetValue("first_name").ToString();
                     lastname = reader.GetValue("last_name").ToString();
+                    txtPhone = reader.GetValue("txt_phone").ToString();
                     bData = true;
                 }
 
@@ -496,7 +508,7 @@
                 }
                 command = conn.CreateCommand();
 
-                query = "SELECT t1.*, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name, ISNULL(t1.time_start, '') time_start, ISNULL(t1.time_stop, '') time_stop  FROM hist_callcenter t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
+                query = "SELECT t1.*, t2.txt_phone, ISNULL(REPLACE(CONVERT(VARCHAR(10),t1.date_to,102),'.','-'),'1900-01-01') dateorder,t2.physical_contract, t2.id_client, t2.first_name, t2.last_name, ISNULL(t1.time_start, '') time_start, ISNULL(t1.time_stop, '') time_stop  FROM hist_callcenter t1 INNER JOIN hist_contracts t2 ON t2.id_branch = t1.id_branch AND t2.id_contract = t1.id_contract WHERE ";
                 query = query + " t1.id_branch = " + id_branch + "";
                 query = query + " AND t1.id_to_correla = " + idtechnicalorder + " AND t1.id_status NOT IN (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND (yn_closews = -1 OR yn_closewos = -1))";
                 command.CommandText = query;
@@ -521,6 +533,7 @@
                     dateorder = DateTime.Parse(reader.GetValue("dateorder").ToString());
                     timestart = reader.GetValue("time_start").ToString();
                     timestop = reader.GetValue("time_stop").ToString();
+                    txtPhone = reader.GetValue("txt_phone").ToString();
                 }
 
                 conn.Close();
@@ -562,39 +575,39 @@
 
                 command = conn.CreateCommand();
 
-                
-                    query = "UPDATE internal_correlatives SET last_number = last_number + 1 WHERE ";
-                    query = query + " id_branch = " + id_branch + "";
-                    query = query + " AND yn_active = -1 AND id_correlative = 'TECORDERS'";
-                    query = query + " SELECT last_number, id_serial FROM internal_correlatives WHERE ";
-                    query = query + " id_branch = " + id_branch + "";
-                    query = query + " AND yn_active = -1 AND id_correlative = 'TECORDERS'";
-                    command.CommandText = query;
-                    var reader2 = command.ExecuteReader();
 
-                    while (reader2.Read())
-                    {
-                        sCorrela = reader2.GetValue("last_number").ToString();
+                query = "UPDATE internal_correlatives SET last_number = last_number + 1 WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'TECORDERS'";
+                query = query + " SELECT last_number, id_serial FROM internal_correlatives WHERE ";
+                query = query + " id_branch = " + id_branch + "";
+                query = query + " AND yn_active = -1 AND id_correlative = 'TECORDERS'";
+                command.CommandText = query;
+                var reader2 = command.ExecuteReader();
 
-                    }
-                    command = conn.CreateCommand();
+                while (reader2.Read())
+                {
+                    sCorrela = reader2.GetValue("last_number").ToString();
 
-                    query = "INSERT INTO hist_technicalorders SELECT ";
-                    query = query + " " + id_branch + "";
-                    query = query + ", " + idcontract + "";
-                    query = query + ", " + sCorrela + "";
-                    query = query + ", " + idtypeorder + "";
-                    query = query + ", 1";
-                    query = query + ", 0" + idtec + "";
-                    query = query + ", getdate() ";
-                    query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
-                    query = query + ", '" + txtref + "'";
-                    query = query + ", '" + txtproblema + "', null, null, null, null";
-                    query = query + ", '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null";
-                    command.CommandText = query;
-                    command.ExecuteNonQuery();
-                    msgBox = "OT " + sCorrela.ToString() + " creada correctamente...";
-                
+                }
+                command = conn.CreateCommand();
+
+                query = "INSERT INTO hist_technicalorders SELECT ";
+                query = query + " " + id_branch + "";
+                query = query + ", " + idcontract + "";
+                query = query + ", " + sCorrela + "";
+                query = query + ", " + idtypeorder + "";
+                query = query + ", 1";
+                query = query + ", 0" + idtec + "";
+                query = query + ", getdate() ";
+                query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
+                query = query + ", '" + txtref + "'";
+                query = query + ", '" + txtproblema + "', null, null, null, null";
+                query = query + ", '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "', null";
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+                msgBox = "OT " + sCorrela.ToString() + " creada correctamente...";
+
 
                 conn.Close();
 
@@ -750,6 +763,10 @@
                     query = query + " AND id_branch = " + id_branch + "";
                     query = query + " AND id_contract = " + idcontract + "";
                     query = query + " AND id_status not in (SELECT id_status FROM technical_orders_status WHERE id_branch = " + id_branch + " AND yn_active = -1 AND (yn_closews = -1 OR yn_closewos = -1))";
+                    query = query + "                  UPDATE hist_contracts SET ";
+                    query = query + " txt_phone = '" + txtPhone + "'";
+                    query = query + " WHERE id_contract = " + idcontract + "";
+                    query = query + " AND id_branch = " + id_branch + "";
                     command.CommandText = query;
                     command.ExecuteNonQuery();
                     msgBox = "OT " + realidtechnicalorder.ToString() + " guardada correctamente...";
@@ -783,6 +800,10 @@
                     query = query + ", '" + dateorder.Date.ToString("yyyyMMdd") + "'";
                     query = query + ", '" + txtref + "'";
                     query = query + ", '" + txtproblema + "', null, null, '"+timestart+"', null";
+                    query = query + "                  UPDATE hist_contracts SET ";
+                    query = query + " txt_phone = '" + txtPhone + "'";
+                    query = query + " WHERE id_contract = " + idcontract + "";
+                    query = query + " AND id_branch = " + id_branch + "";
                     command.CommandText = query;
                     command.ExecuteNonQuery();
                     msgBox = "OT " + sCorrela.ToString() + " creada correctamente...";
@@ -793,7 +814,14 @@
 
                 conn.Close();
                 if (idtec.Length > 0)
-                    BtnClick();
+                {
+                    if(int.Parse(idtec) > 0)
+                    {
+                        BtnClick();
+                    }
+                    
+                }
+
                 cleanscreen();
                 NavigationManager.NavigateTo("/callcenter");
             }
