@@ -1,0 +1,324 @@
+﻿@page "/servicesconf"
+@{
+    @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env
+    @inject Data.ApplicationDbContext _appContext
+    @inject NavigationManager NavigationManager
+
+
+    string oUser = "";
+    string sIdBranch = "";
+    string sIdInternalRole = "";
+    try
+    {
+        oUser = _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+        using (var context = new Data.SQLContext())
+        {
+            var conn = context.Database.GetDbConnection();
+            conn.Open();
+            var command = conn.CreateCommand();
+
+            string query = "SELECT id_branch, id_internal_role FROM branches_roles  WHERE email_member = '" + oUser + "'";
+            command.CommandText = query;
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                sIdBranch = reader.GetValue("id_branch").ToString();
+                sIdInternalRole = reader.GetValue("id_internal_role").ToString();
+            }
+            command = conn.CreateCommand();
+
+            query = "SELECT MAX(ym_process) rvalue FROM lastprocesscollections  WHERE id_branch = " + sIdBranch + "";
+            command.CommandText = query;
+            reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                lastprocess = reader.GetValue("rvalue").ToString();
+            }
+            conn.Close();
+            if (sIdBranch.Length <= 0)
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+            if (int.Parse(sIdInternalRole) == 1 || int.Parse(sIdInternalRole) == 9)
+            {
+                //Access App
+            }
+            else
+            {
+                NavigationManager.NavigateTo("Home");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        string sError = ex.Message;
+    }
+
+}
+<AuthorizeView>
+    <Authorized>
+        <h3>Configuracion de Servicios</h3>
+        <label>ID</label>
+        <input @bind-value="IdService" @bind-value:event="oninput" class="form-control" />
+        <button class="btn btn-primary" @onclick=@BtnFind>Find</button>
+        <br />
+        <label>Servicio</label>
+        <input @bind-value="TxtService" @bind-value:event="oninput" class="form-control" />
+        <label>Parametros</label>
+        <input @bind-value="TxtParameters" @bind-value:event="oninput" class="form-control" />
+        <label>Importe Base</label>
+        <input @bind-value="ImpService" @bind-value:event="oninput" class="form-control" />
+        <label>Recargo</label>
+        <input @bind-value="ImpRecharge" @bind-value:event="oninput" class="form-control" />
+        <label>Descuentos</label>
+        <input @bind-value="ImpDiscount" @bind-value:event="oninput" class="form-control" />
+        <label>Activo?</label>
+        <input type="checkbox" @bind-value="YnActive" checked=@YnActive class="form-control" />
+        <label>Mora</label>
+        <input @bind-value="LatePaymentFee" @bind-value:event="oninput" class="form-control" />
+        <label>Ultimo Dia sin mora</label>
+        <input @bind-value="LatePaymentDay" @bind-value:event="oninput" class="form-control" />
+
+        <button class="btn btn-primary" @onclick=@BtnClick>Generar</button>
+        <hr />
+        <table style="width:100%;">
+            <tr>
+                <td>
+                    ID
+                </td>
+                <td>
+                    SERVICIO
+                </td>
+                <td>
+                    PRECIO
+                </td>
+
+            </tr>
+            @using (var context = new Data.SQLContext())
+            {
+                var conn = context.Database.GetDbConnection(); conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch, id_internal_role FROM branches_roles  WHERE email_member = '" + oUser + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    sIdBranch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+                query = "SELECT * FROM services_catalog WHERE id_branch = 0" + sIdBranch;
+
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    <tr>
+                        <td><p>@reader.GetValue("id_service").ToString()</p></td>
+                        <td><p>@reader.GetValue("txt_service").ToString() <br /> @reader.GetValue("txt_parameters").ToString()</p></td>
+                        <td><p>@reader.GetValue("imp_total").ToString()</p></td>
+
+                    </tr>
+                }
+
+                conn.Close();
+            }
+
+        </table>
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please Login</h2>
+        <a href="Identity/Account/Login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+    [BindProperty]
+    public string id_branch { get; set; } = "";
+
+    [BindProperty]
+    public string msgBox { get; set; } = "";
+
+    [BindProperty]
+    public string lastprocess { get; set; } = "";
+
+    [BindProperty]
+    public string IdService { get; set; } = "";
+
+    [BindProperty]
+    public string TxtService { get; set; } = "";
+
+    [BindProperty]
+    public string TxtParameters { get; set; } = "";
+
+    [BindProperty]
+    public string ImpService { get; set; } = "0.00";
+
+    [BindProperty]
+    public string ImpDiscount { get; set; } = "0.00";
+
+    [BindProperty]
+    public string ImpRecharge { get; set; } = "0.00";
+
+    [BindProperty]
+    public string ImpTotal { get; set; } = "0.00";
+
+    [BindProperty]
+    public bool YnActive { get; set; } = true;
+
+    [BindProperty]
+    public string LatePaymentFee { get; set; } = "0.00";
+
+    [BindProperty]
+    public string LatePaymentDay { get; set; } = "";
+
+    private void BtnFind()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT * FROM services_catalog WHERE id_branch = " + id_branch + "";
+                query = query + " AND id_service = " + IdService;
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    TxtService = reader.GetValue("txt_service").ToString();
+                    TxtParameters = reader.GetValue("txt_parameters").ToString();
+                    ImpService = reader.GetValue("imp_service").ToString();
+                    ImpDiscount = reader.GetValue("imp_discount").ToString();
+                    ImpRecharge = reader.GetValue("imp_recharge").ToString();
+                    ImpTotal = reader.GetValue("imp_total").ToString();
+                    if (reader.GetValue("yn_active").ToString() == "-1")
+                        YnActive = true;
+                    else
+                        YnActive = false;
+                    LatePaymentFee = reader.GetValue("late_payment_fee").ToString();
+                    LatePaymentDay = reader.GetValue("late_payment_day").ToString();
+                }
+
+                conn.Close();
+
+
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
+
+    private void BtnClick()
+    {
+        using (var context = new Data.SQLContext())
+        {
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                conn.Open();
+                var command = conn.CreateCommand();
+
+                string query = "SELECT id_branch FROM branches_roles  WHERE email_member = '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                command.CommandText = query;
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    id_branch = reader.GetValue("id_branch").ToString();
+                }
+                command = conn.CreateCommand();
+
+                query = "SELECT 1 FROM services_catalog WHERE id_branch = " + id_branch + "";
+                query = query + " AND id_service = " + IdService;
+                command.CommandText = query;
+                reader = command.ExecuteReader();
+                bool bFound = false;
+                while (reader.Read())
+                {
+                    bFound = true;
+                }
+                command = conn.CreateCommand();
+
+                if(bFound)
+                {
+                    query = "UPDATE services_catalog SET ";
+                    query = query + " txt_service = UPPER('" + TxtService + "')";
+                    query = query + ", txt_parameters = UPPER('" + TxtParameters + "')";
+                    query = query + ", imp_service = 0" + ImpService + "";
+                    query = query + ", imp_discount = 0" + ImpDiscount + "";
+                    query = query + ", imp_recharge = 0" + ImpRecharge + "";
+                    query = query + ", imp_total = 0 + 0" + ImpService + "+ 0" + ImpRecharge + " - 0" + ImpDiscount;
+                    if(YnActive)
+                        query = query + ", yn_active = -1";
+                    else
+                        query = query + ", yn_active = 0";
+                    query = query + ", late_payment_fee = 0" + LatePaymentFee + "";
+                    query = query + ", late_payment_day = 0" + LatePaymentDay + " WHERE id_branch = "+ id_branch + " AND id_service = " + IdService;
+                }
+                else
+                {
+                    query = "INSERT INTO services_catalog SELECT " + id_branch + ", " + IdService;
+                    query = query + ", UPPER('" + TxtService + "')";
+                    query = query + ", UPPER('" + TxtParameters + "')";
+                    query = query + ", 0" + ImpService + "";
+                    query = query + ", 0" + ImpDiscount + "";
+                    query = query + ", 0" + ImpRecharge + "";
+                    query = query + ", 0 + 0" + ImpService + "+ 0" + ImpRecharge + " - 0" + ImpDiscount;
+                    if(YnActive)
+                        query = query + ", -1";
+                    else
+                        query = query + ", 0";
+                    query = query + ", 0" + LatePaymentFee + "";
+                    query = query + ", 0" + LatePaymentDay + "";
+
+                }
+
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+
+            }
+            catch (Exception ex)
+            {
+                string sMsg = ex.Message;
+                msgBox = sMsg;
+            }
+
+
+
+
+
+        }
+
+    }
+
+}
+

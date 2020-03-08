@@ -148,7 +148,7 @@
                             <option value="0">Seleccione una opción</option>
                             @using (var context = new Data.SQLContext())
                             {
-                                
+
                                 var conn = context.Database.GetDbConnection();
                                 conn.Open();
                                 var command = conn.CreateCommand();
@@ -324,6 +324,16 @@
                     <td><input @bind-value="clientobs" @bind-value:event="oninput" class="form-control" /></td>
                 </tr>
                 <tr>
+                    <td><p><b>Papeleria Completa?:</b></p></td>
+                    <td>
+                        <input type="checkbox" @bind-value="bPaperwork" checked=@bPaperwork class="form-control" />
+                    </td>
+                </tr>
+                <tr>
+                    <td><p><b>Documentos Pendientes:</b></p></td>
+                    <td><input @bind-value="txtPaperwork" @bind-value:event="oninput" class="form-control" /></td>
+                </tr>
+                <tr>
                     <td><button class="btn btn-primary" @onclick=@BtnClick>Save</button></td>
                     <td></td>
                 </tr>
@@ -404,6 +414,10 @@
     public string creationuser { get; set; } = "";
     [BindProperty]
     public string clientobs { get; set; } = "";
+    [BindProperty]
+    public bool bPaperwork { get; set; } = false;
+    [BindProperty]
+    public string txtPaperwork { get; set; } = "";
 
     private void BtnFindIdCobert()
     {
@@ -505,6 +519,16 @@
                 query = query + ", 0" + idzipcoverage + "";
                 query = query + ", UPPER('" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "')";
                 query = query + ", UPPER('" + clientobs + "')";
+                query = query + "            INSERT INTO hist_contracts_paperwork SELECT ";
+                query = query + " " + id_branch + "";
+                query = query + ", " + idcontract + "";
+                if(bPaperwork)
+                    query = query + ", -1";
+                else
+                    query = query + ", 0";
+                query = query + ", UPPER('" + txtPaperwork + "')";
+                query = query + ", '" + _appContext._httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value + "'";
+                query = query + ", getdate(), null, null";
                 command.CommandText = query;
                 command.ExecuteNonQuery();
 
@@ -538,6 +562,7 @@
         counter = "";
         pole = "";
         einnumber = "";
+        txtPaperwork = "";
         billingname = "";
         billingaddress = "";
         collectaddress = "";
